@@ -53,6 +53,7 @@ A little tour of what's inside!
 | `/repos.html` | **Repositories** — Manage local Git repositories, edit code, view changes, commit, switch branches, push remotely, preview READMEs, and manage releases. |
 | `/minecraft.html` | **Minecraft** — Manage a Minecraft server with Java setup, file management, lifecycle controls, and its own dedicated console. |
 | `/terminal.html` | **Operations Terminal** — Run built-in checks for your host and managed services. |
+| `/weather.html` | **Weather** — Look up a city and view current conditions, hourly outlook, and a 7-day forecast from Open-Meteo. |
 
 ## 🌄 A Dashboard That Follows the Sun
 

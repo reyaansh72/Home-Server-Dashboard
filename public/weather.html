@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#323233">
+    <title>Weather | Home Server</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/weather.css">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-top"><a href="/" aria-label="Server overview"><img src="/assets/favicon.svg" class="logo" alt="Logo"></a></div>
+        <nav class="sidebar-nav" aria-label="Main navigation">
+            <a class="sidebar-link" href="/" aria-label="Server overview" title="Server overview"><span class="material-symbols-outlined" aria-hidden="true">dashboard</span></a>
+            <a class="sidebar-link" href="/storage.html" aria-label="Storage" title="Storage"><span class="material-symbols-outlined" aria-hidden="true">folder_open</span></a>
+            <a class="sidebar-link" href="/shorts.html" aria-label="Shorts" title="Shorts"><span class="material-symbols-outlined" aria-hidden="true">smart_display</span></a>
+            <a class="sidebar-link" href="/repos.html" aria-label="Repositories" title="Repositories"><span class="material-symbols-outlined" aria-hidden="true">source</span></a>
+            <a class="sidebar-link" href="/minecraft.html" aria-label="Minecraft server" title="Minecraft server"><span class="material-symbols-outlined" aria-hidden="true">stadia_controller</span></a>
+            <a class="sidebar-link" href="/terminal.html" aria-label="Operations terminal" title="Operations terminal"><span class="material-symbols-outlined" aria-hidden="true">terminal</span></a>
+            <a class="sidebar-link active" href="/weather.html" aria-label="Weather" title="Weather"><span class="material-symbols-outlined" aria-hidden="true">partly_cloudy_day</span></a>
+        </nav>
+    </aside>
+
+    <main class="main weather-main">
+        <header class="weather-header">
+            <div class="weather-title"><span class="material-symbols-outlined" aria-hidden="true">partly_cloudy_day</span><div><p class="eyebrow">LOCAL CONDITIONS</p><h1>Weather</h1></div></div>
+            <form id="city-search-form" class="city-search-form" role="search">
+                <label class="visually-hidden" for="city-search">Search for a city</label>
+                <span class="material-symbols-outlined" aria-hidden="true">search</span>
+                <input id="city-search" name="city" type="search" autocomplete="off" placeholder="Enter a city" required>
+                <button class="icon-button" type="submit" title="Find city" aria-label="Find city"><span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span></button>
+            </form>
+        </header>
+
+        <p id="weather-status" class="weather-status" role="status" aria-live="polite">Enter a city to see its forecast.</p>
+
+        <section id="current-weather" class="current-weather" aria-label="Current weather" aria-live="polite">
+            <div class="current-primary">
+                <div class="current-place"><p class="weather-eyebrow">CURRENT WEATHER</p><h2 id="current-city">Choose your city</h2><p id="current-date" class="current-date">Your forecast starts here</p></div>
+                <div class="current-reading"><span id="current-icon" class="material-symbols-outlined weather-condition-icon" aria-hidden="true">sunny</span><div class="current-temperature"><strong id="current-temperature">--</strong><span>°</span></div><div class="current-condition"><span id="current-description">Search for a location</span><span id="feels-like">Feels like --°</span></div></div>
+            </div>
+            <div class="current-details" aria-label="Current conditions">
+                <div class="weather-detail"><span class="material-symbols-outlined" aria-hidden="true">water_drop</span><div><span>Humidity</span><strong id="current-humidity">--%</strong></div></div>
+                <div class="weather-detail"><span class="material-symbols-outlined" aria-hidden="true">air</span><div><span>Wind</span><strong id="current-wind">--</strong></div></div>
+                <div class="weather-detail"><span class="material-symbols-outlined" aria-hidden="true">wb_sunny</span><div><span>UV index</span><strong id="current-uv">--</strong></div></div>
+                <div class="weather-detail"><span class="material-symbols-outlined" aria-hidden="true">rainy</span><div><span>Rain chance</span><strong id="current-rain">--%</strong></div></div>
+            </div>
+        </section>
+
+        <section class="forecast-section" aria-labelledby="hourly-title">
+            <div class="forecast-heading"><div><p class="weather-eyebrow">PLAN THE NEXT HOURS</p><h2 id="hourly-title">Hourly forecast</h2></div><span id="forecast-timezone" class="forecast-meta"></span></div>
+            <div id="hourly-forecast" class="hourly-forecast"><p class="forecast-placeholder">Choose a city to load the forecast.</p></div>
+        </section>
+
+        <section class="forecast-section daily-section" aria-labelledby="daily-title">
+            <div class="forecast-heading"><div><p class="weather-eyebrow">AHEAD THIS WEEK</p><h2 id="daily-title">7-day forecast</h2></div><span class="forecast-meta">High / low</span></div>
+            <div id="daily-forecast" class="daily-forecast"><p class="forecast-placeholder">Your weekly outlook will appear here.</p></div>
+        </section>
+
+        <footer class="weather-footer"><span>WEATHER DATA BY OPEN-METEO</span><span id="weather-updated">Forecast updates when you choose a city</span></footer>
+    </main>
+    <script src="/js/theme.js?v=daypart-background"></script>
+    <script src="/js/weather.js"></script>
+</body>
+</html>
