@@ -1,6 +1,6 @@
 # Storage API
 
-The server stores files only under `data/files/`. Requests originating from the same-origin `/storage.html` and `/shorts.html` websites work without a token. Other API clients, including other pages on the same host, must send the bearer token printed at server startup. To use a stable token, set `FILES_API_TOKEN` before starting the server.
+The server stores files only under `data/files/`. Requests originating from the same-origin `/storage.html`, `/shorts.html`, and `/chat.html` websites work without a token. Other API clients, including other pages on the same host, must send the bearer token printed at server startup. To use a stable token, set `FILES_API_TOKEN` before starting the server.
 
 The server listens on `0.0.0.0` by default, as the dashboard did previously. Restrict access to a trusted LAN/firewall. For apps running on a different browser origin, set `CORS_ORIGIN` to that exact origin (for example `https://my-app.example`). Do not use a public origin for this private file API.
 
@@ -106,3 +106,18 @@ Setting `TEST_MODE=true` when starting the server bypasses the allowlist and per
 - `POST /api/terminal` accepts `{ "command": "status" }` for a built-in action or `{ "command": "df -h" }` for an allowed executable and its arguments. Commands have a 15-second timeout and a 1 MiB output limit.
 
 Built-in actions are `help`, `status`, `uptime`, `disk`, `memory`, `repos`, and `minecraft`. Minecraft commands belong in the separate Minecraft Console and are sent to the managed Minecraft process stdin.
+
+## Global Chat API
+
+Chat profiles, messages, reactions, pins, file comments, and attachment metadata are stored in `data/chat/chat.json`; uploaded files live in `data/chat/uploads/`. The chat is global to the server and has no account authentication, so expose it only to a trusted network. Client profile IDs are browser-generated identifiers, not credentials.
+
+- `GET /api/chat?userId=<uuid>` returns the requesting browser profile, latest 250 messages, replies, reactions, attachment metadata, and pinned messages.
+- `POST /api/chat/profile` saves a profile: `{ "userId": "<uuid>", "username": "Name", "avatarId": "<uploaded-file-id>" }`. Set `avatarId` to `null` to remove the avatar.
+- `POST /api/chat/upload?userId=<uuid>&kind=avatar|attachment|voice&name=<filename>` uploads raw file bytes. Avatars are limited to 5 MiB, voice notes to 15 MiB, and other attachments to 50 MiB. Supported types are images, MP4/WebM/MOV video, audio for voice notes, PDF, text, Markdown, CSV, and ZIP.
+- `GET /api/chat/files/:id/content` serves an image/audio/video inline or downloads a document.
+- `POST /api/chat/messages` posts `{ "userId": "<uuid>", "text": "Hello", "fileId": "<optional-file-id>", "replyTo": "<optional-message-id>" }`.
+- `PUT /api/chat/messages/:id` edits the caller's own message with `{ "userId": "<uuid>", "text": "Updated" }`.
+- `DELETE /api/chat/messages/:id` removes the caller's own message with `{ "userId": "<uuid>" }`.
+- `POST /api/chat/messages/:id/reactions` toggles a reaction with `{ "userId": "<uuid>", "emoji": "👍" }`.
+- `POST /api/chat/messages/:id/pin` pins or unpins with `{ "userId": "<uuid>", "pinned": true }`.
+- `POST /api/chat/files/:id/comments` comments on an uploaded file with `{ "userId": "<uuid>", "text": "Nice photo" }`.

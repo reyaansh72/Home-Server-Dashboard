@@ -15,6 +15,9 @@ const minecraftRuntimesDirectory = path.join(minecraftDirectory, 'runtimes');
 const minecraftMetadataPath = path.join(minecraftDirectory, 'manager.json');
 const shortsDirectory = path.join(storageDirectory, 'Shorts');
 const shortsMetadataPath = path.join(__dirname, 'data', 'shorts.json');
+const chatDirectory = path.join(__dirname, 'data', 'chat');
+const chatUploadsDirectory = path.join(chatDirectory, 'uploads');
+const chatMetadataPath = path.join(chatDirectory, 'chat.json');
 const port = Number(process.env.PORT) || 3000;
 const host = process.env.HOST || '0.0.0.0';
 const maxUploadBytes = 250 * 1024 * 1024;
@@ -31,6 +34,7 @@ fs.mkdirSync(shortsDirectory, { recursive: true });
 fs.mkdirSync(repositoriesDirectory, { recursive: true });
 fs.mkdirSync(minecraftDirectory, { recursive: true });
 fs.mkdirSync(minecraftRuntimesDirectory, { recursive: true });
+fs.mkdirSync(chatUploadsDirectory, { recursive: true });
 let previousCpu = readCpuTimes();
 let cpuUsage = 0;
 let minecraftProcess = null;
@@ -97,7 +101,7 @@ function isSameOriginDashboardRequest(request) {
     if (!requestHost || !referrer) return false;
     try {
         const source = new URL(referrer);
-        return source.host === requestHost && ['/storage.html', '/shorts.html', '/repos.html', '/minecraft.html', '/terminal.html'].includes(source.pathname);
+        return source.host === requestHost && ['/storage.html', '/shorts.html', '/repos.html', '/minecraft.html', '/terminal.html', '/chat.html'].includes(source.pathname);
     } catch {
         return false;
     }
@@ -1466,6 +1470,273 @@ async function handleShortsApi(request, response, url) {
     sendJson(response, 404, { error: 'Shorts API endpoint not found' });
 }
 
+const chatFileTypes = {
+    '.avif': { mime: 'image/avif', category: 'image' },
+    '.gif': { mime: 'image/gif', category: 'image' },
+    '.jpeg': { mime: 'image/jpeg', category: 'image' },
+    '.jpg': { mime: 'image/jpeg', category: 'image' },
+    '.png': { mime: 'image/png', category: 'image' },
+    '.webp': { mime: 'image/webp', category: 'image' },
+    '.mp3': { mime: 'audio/mpeg', category: 'audio' },
+    '.m4a': { mime: 'audio/mp4', category: 'audio' },
+    '.ogg': { mime: 'audio/ogg', category: 'audio' },
+    '.wav': { mime: 'audio/wav', category: 'audio' },
+    '.webm': { mime: 'video/webm', category: 'video' },
+    '.mp4': { mime: 'video/mp4', category: 'video' },
+    '.mov': { mime: 'video/quicktime', category: 'video' },
+    '.pdf': { mime: 'application/pdf', category: 'file' },
+    '.txt': { mime: 'text/plain; charset=utf-8', category: 'file' },
+    '.md': { mime: 'text/markdown; charset=utf-8', category: 'file' },
+    '.csv': { mime: 'text/csv; charset=utf-8', category: 'file' },
+    '.zip': { mime: 'application/zip', category: 'file' }
+};
+
+function loadChatStore() {
+    try {
+        const data = JSON.parse(fs.readFileSync(chatMetadataPath, 'utf8'));
+        return {
+            profiles: data.profiles && typeof data.profiles === 'object' ? data.profiles : {},
+            files: data.files && typeof data.files === 'object' ? data.files : {},
+            messages: Array.isArray(data.messages) ? data.messages : []
+        };
+    } catch (error) {
+        if (error.code !== 'ENOENT') console.error('Unable to read chat metadata:', error.message);
+        return { profiles: {}, files: {}, messages: [] };
+    }
+}
+
+function saveChatStore(store) {
+    fs.writeFileSync(chatMetadataPath, JSON.stringify(store, null, 2));
+}
+
+function validChatUserId(value) {
+    if (typeof value !== 'string' || !/^[a-f0-9-]{36}$/i.test(value)) {
+        throw Object.assign(new Error('A valid chat profile is required'), { statusCode: 400 });
+    }
+    return value;
+}
+
+function getChatProfile(store, userId) {
+    const profile = store.profiles[userId];
+    if (!profile) throw Object.assign(new Error('Set up your chat profile first'), { statusCode: 400 });
+    return profile;
+}
+
+function getChatMessage(store, messageId) {
+    const message = store.messages.find((entry) => entry.id === messageId);
+    if (!message) throw Object.assign(new Error('Chat message not found'), { statusCode: 404 });
+    return message;
+}
+
+function chatFileView(file) {
+    return {
+        id: file.id,
+        name: file.name,
+        size: file.size,
+        category: file.category,
+        mime: file.mime,
+        uploadedAt: file.uploadedAt,
+        comments: file.comments || []
+    };
+}
+
+function getChatFilePath(file) {
+    const filePath = path.resolve(chatUploadsDirectory, file.diskName);
+    if (path.dirname(filePath) !== chatUploadsDirectory || !fs.existsSync(filePath)) {
+        throw Object.assign(new Error('Chat attachment not found'), { statusCode: 404 });
+    }
+    return filePath;
+}
+
+async function handleChatApi(request, response, url) {
+    if (request.method === 'GET' && url.pathname === '/api/chat') {
+        const store = loadChatStore();
+        const userId = url.searchParams.get('userId');
+        const profile = userId ? store.profiles[userId] || null : null;
+        const messages = store.messages.slice(-250).map((message) => ({
+            ...message,
+            file: message.fileId && store.files[message.fileId] ? chatFileView(store.files[message.fileId]) : null,
+            reply: message.replyTo ? (() => {
+                const repliedTo = store.messages.find((entry) => entry.id === message.replyTo);
+                return repliedTo ? { id: repliedTo.id, username: repliedTo.username, text: repliedTo.text, fileName: repliedTo.fileId && store.files[repliedTo.fileId] ? store.files[repliedTo.fileId].name : '' } : null;
+            })() : null,
+            isPinned: Boolean(message.isPinned)
+        }));
+        sendJson(response, 200, { profile, messages, pinned: messages.filter((message) => message.isPinned).slice(-10) });
+        return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/chat/profile') {
+        const body = await readJsonBody(request, 16 * 1024);
+        const userId = validChatUserId(body.userId);
+        const username = typeof body.username === 'string' ? body.username.trim().replace(/\s+/g, ' ') : '';
+        if (!username || username.length > 32 || /[\r\n\0]/.test(username)) throw Object.assign(new Error('Username must be 1 to 32 characters'), { statusCode: 400 });
+        const store = loadChatStore();
+        const existing = store.profiles[userId] || {};
+        let avatarId = existing.avatarId || null;
+        if (body.avatarId !== undefined) {
+            if (body.avatarId === null || body.avatarId === '') avatarId = null;
+            else {
+                const avatar = store.files[body.avatarId];
+                if (!avatar || avatar.userId !== userId || avatar.category !== 'image' || avatar.size > 5 * 1024 * 1024) {
+                    throw Object.assign(new Error('Avatar must be an uploaded image under 5 MiB'), { statusCode: 400 });
+                }
+                avatarId = avatar.id;
+            }
+        }
+        const nextProfile = { userId, username, avatarId, updatedAt: new Date().toISOString() };
+        store.profiles[userId] = nextProfile;
+        saveChatStore(store);
+        sendJson(response, 200, { profile: nextProfile, avatar: avatarId ? chatFileView(store.files[avatarId]) : null });
+        return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/chat/upload') {
+        const userId = validChatUserId(url.searchParams.get('userId'));
+        const store = loadChatStore();
+        getChatProfile(store, userId);
+        const kind = url.searchParams.get('kind') || 'attachment';
+        const name = safeName(url.searchParams.get('name') || 'upload');
+        const extension = path.extname(name).toLowerCase();
+        const fileType = chatFileTypes[extension];
+        if (!fileType || (kind === 'avatar' && fileType.category !== 'image') || !['avatar', 'attachment', 'voice'].includes(kind)) {
+            throw Object.assign(new Error('Unsupported chat file type'), { statusCode: 400 });
+        }
+        if (kind === 'voice' && fileType.category !== 'audio') throw Object.assign(new Error('Voice notes must be audio files'), { statusCode: 400 });
+        if (kind === 'attachment' && fileType.category === 'audio') throw Object.assign(new Error('Use voice note recording for audio'), { statusCode: 400 });
+        const maxBytes = kind === 'avatar' ? 5 * 1024 * 1024 : kind === 'voice' ? 15 * 1024 * 1024 : 50 * 1024 * 1024;
+        const id = crypto.randomUUID();
+        const diskName = `${id}${extension}`;
+        const filePath = path.join(chatUploadsDirectory, diskName);
+        const size = await receiveMinecraftUpload(request, filePath, maxBytes);
+        if (!size) {
+            fs.rmSync(filePath, { force: true });
+            throw Object.assign(new Error('Uploaded file is empty'), { statusCode: 400 });
+        }
+        const file = { id, diskName, name, size, category: fileType.category, mime: fileType.mime, userId, uploadedAt: new Date().toISOString(), comments: [] };
+        store.files[id] = file;
+        saveChatStore(store);
+        sendJson(response, 201, { file: chatFileView(file) });
+        return;
+    }
+
+    const fileContentMatch = url.pathname.match(/^\/api\/chat\/files\/([a-f0-9-]+)\/content$/i);
+    if (request.method === 'GET' && fileContentMatch) {
+        const store = loadChatStore();
+        const file = store.files[fileContentMatch[1]];
+        if (!file) throw Object.assign(new Error('Chat attachment not found'), { statusCode: 404 });
+        const filePath = getChatFilePath(file);
+        const inline = ['image', 'video', 'audio'].includes(file.category);
+        response.writeHead(200, {
+            'Content-Type': file.mime,
+            'Content-Length': file.size,
+            'Content-Disposition': `${inline ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(file.name)}`,
+            'X-Content-Type-Options': 'nosniff',
+            'Cache-Control': 'private, max-age=3600'
+        });
+        await pipeline(fs.createReadStream(filePath), response);
+        return;
+    }
+
+    const fileCommentsMatch = url.pathname.match(/^\/api\/chat\/files\/([a-f0-9-]+)\/comments$/i);
+    if (request.method === 'POST' && fileCommentsMatch) {
+        const body = await readJsonBody(request, 16 * 1024);
+        const userId = validChatUserId(body.userId);
+        const store = loadChatStore();
+        const profile = getChatProfile(store, userId);
+        const file = store.files[fileCommentsMatch[1]];
+        if (!file) throw Object.assign(new Error('Chat attachment not found'), { statusCode: 404 });
+        const text = typeof body.text === 'string' ? body.text.trim() : '';
+        if (!text || text.length > 1000) throw Object.assign(new Error('File comments must be 1 to 1000 characters'), { statusCode: 400 });
+        const comment = { id: crypto.randomUUID(), userId, username: profile.username, avatarId: profile.avatarId, text, createdAt: new Date().toISOString() };
+        file.comments = Array.isArray(file.comments) ? file.comments : [];
+        file.comments.push(comment);
+        if (file.comments.length > 100) file.comments = file.comments.slice(-100);
+        saveChatStore(store);
+        sendJson(response, 201, { comment });
+        return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/chat/messages') {
+        const body = await readJsonBody(request, 32 * 1024);
+        const userId = validChatUserId(body.userId);
+        const store = loadChatStore();
+        const profile = getChatProfile(store, userId);
+        const text = typeof body.text === 'string' ? body.text.trim() : '';
+        const file = body.fileId ? store.files[body.fileId] : null;
+        if (!text && !file) throw Object.assign(new Error('Write a message or attach a file'), { statusCode: 400 });
+        if (text.length > 4000) throw Object.assign(new Error('Messages are limited to 4000 characters'), { statusCode: 400 });
+        if (body.fileId && (!file || file.userId !== userId || file.category === 'image' && !body.fileId)) {
+            throw Object.assign(new Error('Chat attachment not found'), { statusCode: 404 });
+        }
+        const replyTo = typeof body.replyTo === 'string' && store.messages.some((message) => message.id === body.replyTo) ? body.replyTo : null;
+        const message = {
+            id: crypto.randomUUID(), userId, username: profile.username, avatarId: profile.avatarId,
+            text, fileId: file ? file.id : null, replyTo, reactions: {}, isPinned: false,
+            createdAt: new Date().toISOString(), editedAt: null
+        };
+        store.messages.push(message);
+        if (store.messages.length > 5000) store.messages = store.messages.slice(-5000);
+        saveChatStore(store);
+        sendJson(response, 201, { message });
+        return;
+    }
+
+    const messageMatch = url.pathname.match(/^\/api\/chat\/messages\/([a-f0-9-]+)$/i);
+    if (messageMatch && request.method === 'PUT') {
+        const body = await readJsonBody(request, 8 * 1024);
+        const userId = validChatUserId(body.userId);
+        const store = loadChatStore();
+        const message = getChatMessage(store, messageMatch[1]);
+        if (message.userId !== userId) throw Object.assign(new Error('You can only edit your own messages'), { statusCode: 403 });
+        const text = typeof body.text === 'string' ? body.text.trim() : '';
+        if (!text || text.length > 4000) throw Object.assign(new Error('Edited message must be 1 to 4000 characters'), { statusCode: 400 });
+        message.text = text;
+        message.editedAt = new Date().toISOString();
+        saveChatStore(store);
+        sendJson(response, 200, { message });
+        return;
+    }
+
+    if (messageMatch && request.method === 'DELETE') {
+        const body = await readJsonBody(request, 8 * 1024);
+        const userId = validChatUserId(body.userId);
+        const store = loadChatStore();
+        const message = getChatMessage(store, messageMatch[1]);
+        if (message.userId !== userId) throw Object.assign(new Error('You can only delete your own messages'), { statusCode: 403 });
+        store.messages = store.messages.filter((entry) => entry.id !== message.id);
+        saveChatStore(store);
+        sendJson(response, 200, { deleted: message.id });
+        return;
+    }
+
+    const messageActionMatch = url.pathname.match(/^\/api\/chat\/messages\/([a-f0-9-]+)\/(reactions|pin)$/i);
+    if (messageActionMatch && request.method === 'POST') {
+        const body = await readJsonBody(request, 8 * 1024);
+        const userId = validChatUserId(body.userId);
+        const store = loadChatStore();
+        getChatProfile(store, userId);
+        const message = getChatMessage(store, messageActionMatch[1]);
+        if (messageActionMatch[2] === 'pin') {
+            message.isPinned = body.pinned === undefined ? !message.isPinned : Boolean(body.pinned);
+        } else {
+            const allowedReactions = ['👍', '❤️', '😂', '🎉', '😮', '😢', '🔥', '👀'];
+            if (!allowedReactions.includes(body.emoji)) throw Object.assign(new Error('Unsupported reaction'), { statusCode: 400 });
+            message.reactions = message.reactions && typeof message.reactions === 'object' ? message.reactions : {};
+            message.reactions[body.emoji] = Array.isArray(message.reactions[body.emoji]) ? message.reactions[body.emoji] : [];
+            const viewers = message.reactions[body.emoji];
+            const index = viewers.indexOf(userId);
+            if (index >= 0) viewers.splice(index, 1);
+            else viewers.push(userId);
+        }
+        saveChatStore(store);
+        sendJson(response, 200, { message });
+        return;
+    }
+
+    sendJson(response, 404, { error: 'Chat endpoint not found' });
+}
+
 http.createServer(async (request, response) => {
     const origin = process.env.CORS_ORIGIN || `http://localhost:${port}`;
     response.setHeader('Access-Control-Allow-Origin', origin);
@@ -1483,7 +1754,7 @@ http.createServer(async (request, response) => {
             sendJson(response, 200, { daypart: configuredDaypart });
         } else if (url.pathname === '/api/stats' && request.method === 'GET') {
             sendJson(response, 200, getStats());
-        } else if (url.pathname.startsWith('/api/files') || url.pathname.startsWith('/api/shorts') || url.pathname.startsWith('/api/repos') || url.pathname.startsWith('/api/minecraft') || url.pathname === '/api/terminal') {
+        } else if (url.pathname.startsWith('/api/files') || url.pathname.startsWith('/api/shorts') || url.pathname.startsWith('/api/repos') || url.pathname.startsWith('/api/minecraft') || url.pathname === '/api/terminal' || url.pathname.startsWith('/api/chat')) {
             if (request.headers.authorization !== `Bearer ${apiToken}` && !isSameOriginDashboardRequest(request)) {
                 sendJson(response, 401, { error: 'A valid storage API bearer token is required' });
                 return;
@@ -1492,6 +1763,7 @@ http.createServer(async (request, response) => {
             else if (url.pathname.startsWith('/api/repos')) await handleRepositoryApi(request, response, url);
             else if (url.pathname.startsWith('/api/minecraft')) await handleMinecraftApi(request, response, url);
             else if (url.pathname === '/api/terminal') await handleOperationsTerminalApi(request, response, url);
+            else if (url.pathname.startsWith('/api/chat')) await handleChatApi(request, response, url);
             else await handleFileApi(request, response, url);
         } else if (request.method === 'GET') {
             serveFile(request, response);

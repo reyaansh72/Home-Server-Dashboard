@@ -54,6 +54,9 @@ A little tour of what's inside!
 | `/minecraft.html` | **Minecraft** — Manage a Minecraft server with Java setup, file management, lifecycle controls, and its own dedicated console. |
 | `/terminal.html` | **Operations Terminal** — Run built-in checks for your host and managed services. |
 | `/weather.html` | **Weather** — Look up a city and view current conditions, hourly outlook, and a 7-day forecast from Open-Meteo. |
+| `/chat.html` | **Global Chat** — Shared server conversation with profiles, reactions, replies, pins, search, images, videos, files, voice notes, and file comments. |
+
+Chat usernames and avatars are saved per browser profile, while messages and uploaded attachments are shared in `data/chat/`. Chat has no account authentication, so expose it only to a trusted network; anyone who can reach the dashboard can post using a chosen username.
 
 ## 🌄 A Dashboard That Follows the Sun
 

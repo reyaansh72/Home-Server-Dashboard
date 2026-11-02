@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#323233">
+    <title>Global Chat | Home Server</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/storage.css">
+    <link rel="stylesheet" href="/css/chat.css">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-top"><a href="/" aria-label="Server overview"><img src="/assets/favicon.svg" class="logo" alt="Logo"></a></div>
+        <nav class="sidebar-nav" aria-label="Main navigation">
+            <a class="sidebar-link" href="/" aria-label="Server overview" title="Server overview"><span class="material-symbols-outlined" aria-hidden="true">dashboard</span></a>
+            <a class="sidebar-link" href="/storage.html" aria-label="Storage" title="Storage"><span class="material-symbols-outlined" aria-hidden="true">folder_open</span></a>
+            <a class="sidebar-link" href="/shorts.html" aria-label="Shorts" title="Shorts"><span class="material-symbols-outlined" aria-hidden="true">smart_display</span></a>
+            <a class="sidebar-link" href="/repos.html" aria-label="Repositories" title="Repositories"><span class="material-symbols-outlined" aria-hidden="true">source</span></a>
+            <a class="sidebar-link" href="/minecraft.html" aria-label="Minecraft server" title="Minecraft server"><span class="material-symbols-outlined" aria-hidden="true">stadia_controller</span></a>
+            <a class="sidebar-link" href="/terminal.html" aria-label="Operations terminal" title="Operations terminal"><span class="material-symbols-outlined" aria-hidden="true">terminal</span></a>
+            <a class="sidebar-link" href="/weather.html" aria-label="Weather" title="Weather"><span class="material-symbols-outlined" aria-hidden="true">partly_cloudy_day</span></a>
+            <a class="sidebar-link active" href="/chat.html" aria-label="Global chat" title="Global chat"><span class="material-symbols-outlined" aria-hidden="true">forum</span></a>
+        </nav>
+    </aside>
+
+    <main class="main chat-main">
+        <header class="chat-header">
+            <div class="chat-heading"><span class="material-symbols-outlined chat-heading-icon" aria-hidden="true">forum</span><div><p class="eyebrow">HOME SERVER COMMUNITY</p><h1>Global chat</h1></div><span class="chat-live"><span></span>LIVE</span></div>
+            <div class="chat-header-actions">
+                <label class="chat-search"><span class="material-symbols-outlined" aria-hidden="true">search</span><input id="chat-search-input" type="search" placeholder="Search messages" aria-label="Search messages"></label>
+                <button id="profile-button" class="chat-profile-button" type="button" title="Edit your profile" aria-label="Edit your profile"><span id="header-avatar" class="chat-avatar">?</span><span id="header-username">Profile</span><span class="material-symbols-outlined" aria-hidden="true">expand_more</span></button>
+            </div>
+        </header>
+
+        <div id="chat-status" class="chat-status" role="status" aria-live="polite">Connecting to the server chat…</div>
+        <section class="chat-workspace" aria-label="Global server chat">
+            <div class="chat-stream-shell">
+                <div id="pinned-strip" class="pinned-strip" hidden></div>
+                <div id="message-list" class="message-list" role="log" aria-live="polite" aria-relevant="additions text" tabindex="0">
+                    <div class="chat-empty"><span class="material-symbols-outlined" aria-hidden="true">forum</span><p>Messages from everyone on this server will appear here.</p></div>
+                </div>
+                <button id="jump-latest" class="jump-latest icon-button" type="button" title="Jump to latest messages" aria-label="Jump to latest messages" hidden><span class="material-symbols-outlined" aria-hidden="true">south</span></button>
+                <div id="reply-preview" class="reply-preview" hidden><span class="material-symbols-outlined" aria-hidden="true">reply</span><span id="reply-preview-text"></span><button id="cancel-reply" class="icon-button" type="button" title="Cancel reply" aria-label="Cancel reply"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></div>
+                <form id="message-form" class="message-composer">
+                    <div class="composer-tools">
+                        <button id="attach-button" class="icon-button" type="button" title="Attach image, video, or file" aria-label="Attach image, video, or file"><span class="material-symbols-outlined" aria-hidden="true">attach_file</span></button>
+                        <input id="attachment-input" type="file" accept="image/*,video/mp4,video/webm,video/quicktime,.mov,.pdf,.txt,.md,.csv,.zip" hidden>
+                        <button id="emoji-button" class="icon-button" type="button" title="Insert an emoji" aria-label="Insert an emoji"><span class="material-symbols-outlined" aria-hidden="true">mood</span></button>
+                        <button id="voice-button" class="icon-button" type="button" title="Record a voice note" aria-label="Record a voice note"><span class="material-symbols-outlined" aria-hidden="true">mic</span></button>
+                        <span id="recording-status" class="recording-status" hidden><span></span>Recording <time id="recording-time">0:00</time><button id="stop-recording" class="icon-button" type="button" title="Stop recording" aria-label="Stop recording"><span class="material-symbols-outlined" aria-hidden="true">stop</span></button></span>
+                        <span class="composer-hint">Global · everyone on this server</span>
+                    </div>
+                    <div id="emoji-picker" class="emoji-picker" hidden aria-label="Emoji picker"></div>
+                    <div id="attachment-preview" class="attachment-preview" hidden></div>
+                    <div class="composer-input-row"><textarea id="message-input" rows="1" maxlength="4000" placeholder="Message the server…" aria-label="Write a message"></textarea><button class="send-button" type="submit" title="Send message" aria-label="Send message"><span class="material-symbols-outlined" aria-hidden="true">send</span></button></div>
+                </form>
+            </div>
+            <aside class="chat-side-panel">
+                <section class="chat-side-section"><div class="side-section-heading"><span class="material-symbols-outlined" aria-hidden="true">push_pin</span><h2>Pinned messages</h2></div><div id="pinned-list" class="pinned-list"><p class="side-empty">Nothing pinned yet.</p></div></section>
+                <section class="chat-side-section chat-guidelines"><div class="side-section-heading"><span class="material-symbols-outlined" aria-hidden="true">groups</span><h2>Server room</h2></div><p>One shared conversation for everyone connected to this home server.</p><div class="chat-room-stats"><span><span class="material-symbols-outlined" aria-hidden="true">forum</span> <strong id="message-count">0</strong> messages loaded</span><button id="refresh-chat" class="icon-button" type="button" title="Refresh chat" aria-label="Refresh chat"><span class="material-symbols-outlined" aria-hidden="true">refresh</span></button></div></section>
+            </aside>
+        </section>
+    </main>
+
+    <dialog id="profile-dialog" class="drive-dialog chat-dialog">
+        <form id="profile-form">
+            <div class="dialog-header"><div><p class="dialog-kicker">YOUR CHAT IDENTITY</p><h2>Set up your profile</h2></div><button class="icon-button dialog-close" type="button" data-close-chat-dialog aria-label="Close"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></div>
+            <label class="dialog-label" for="profile-name">Username</label><input id="profile-name" class="dialog-input" type="text" maxlength="32" autocomplete="nickname" required placeholder="Choose a name">
+            <label class="dialog-label" for="avatar-input">Profile logo or photo</label><input id="avatar-input" class="dialog-input chat-file-input" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/avif">
+            <div class="dialog-actions"><button class="drive-button" type="button" data-close-chat-dialog>Cancel</button><button class="drive-button primary-button" type="submit"><span class="material-symbols-outlined" aria-hidden="true">save</span>Save profile</button></div>
+        </form>
+    </dialog>
+
+    <dialog id="file-dialog" class="drive-dialog chat-dialog file-dialog">
+        <div class="dialog-header"><div><p class="dialog-kicker">SHARED ATTACHMENT</p><h2 id="file-dialog-title">File details</h2></div><button class="icon-button dialog-close" type="button" data-close-chat-dialog aria-label="Close"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></div>
+        <div id="file-dialog-preview" class="file-dialog-preview"></div>
+        <div class="file-comments-heading"><span class="material-symbols-outlined" aria-hidden="true">chat</span><h3>File comments</h3></div>
+        <div id="file-comments-list" class="file-comments-list"></div>
+        <form id="file-comment-form" class="file-comment-form"><label class="visually-hidden" for="file-comment-input">Comment on this file</label><textarea id="file-comment-input" class="dialog-input" rows="2" maxlength="1000" required placeholder="Add a comment about this file…"></textarea><button class="drive-button primary-button" type="submit"><span class="material-symbols-outlined" aria-hidden="true">send</span>Comment</button></form>
+    </dialog>
+
+    <script src="/js/theme.js"></script>
+    <script src="/js/chat.js"></script>
+</body>
+</html>
