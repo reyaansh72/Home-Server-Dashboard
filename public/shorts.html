@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#323233">
+    <title>Shorts | Home Server</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/storage.css">
+    <link rel="stylesheet" href="/css/shorts.css">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-top">
+            <a href="/" aria-label="Server overview"><img src="/assets/favicon.svg" class="logo" alt="Logo"></a>
+        </div>
+        <nav class="sidebar-nav" aria-label="Main navigation">
+            <a class="sidebar-link" href="/" aria-label="Server overview" title="Server overview"><span class="material-symbols-outlined" aria-hidden="true">dashboard</span></a>
+            <a class="sidebar-link" href="/storage.html" aria-label="Storage" title="Storage"><span class="material-symbols-outlined" aria-hidden="true">folder_open</span></a>
+            <a class="sidebar-link active" href="/shorts.html" aria-label="Shorts" title="Shorts"><span class="material-symbols-outlined" aria-hidden="true">smart_display</span></a>
+            <a class="sidebar-link" href="/repos.html" aria-label="Repositories" title="Repositories"><span class="material-symbols-outlined" aria-hidden="true">source</span></a>
+            <a class="sidebar-link" href="/minecraft.html" aria-label="Minecraft server" title="Minecraft server"><span class="material-symbols-outlined" aria-hidden="true">stadia_controller</span></a>
+            <a class="sidebar-link" href="/terminal.html" aria-label="Operations terminal" title="Operations terminal"><span class="material-symbols-outlined" aria-hidden="true">terminal</span></a>
+        </nav>
+    </aside>
+
+    <main class="main shorts-main">
+        <header class="shorts-header">
+            <div class="shorts-title">
+                <span class="shorts-mark material-symbols-outlined" aria-hidden="true">play_circle</span>
+                <div><p class="eyebrow">HOME SERVER MEDIA</p><h1>Shorts</h1></div>
+            </div>
+            <div class="shorts-header-actions">
+                <span id="shorts-count" class="shorts-count">Loading clips...</span>
+                <button id="upload-short-button" class="drive-button primary-button" type="button"><span class="material-symbols-outlined" aria-hidden="true">video_call</span><span>Upload video</span></button>
+                <input id="short-file-input" type="file" accept="video/mp4,video/webm,video/quicktime,video/x-m4v,.mp4,.webm,.mov,.m4v" hidden>
+            </div>
+        </header>
+
+        <section class="shorts-layout" aria-label="Short video feed">
+            <div id="shorts-feed" class="shorts-feed" tabindex="0" aria-label="Videos. Use the up and down arrow keys to browse.">
+                <div id="shorts-loading" class="shorts-state">Loading videos...</div>
+                <div id="shorts-empty" class="shorts-state" hidden>
+                    <span class="material-symbols-outlined" aria-hidden="true">video_library</span>
+                    <h2>Your Shorts feed is ready</h2>
+                    <p>Upload a video to start the feed.</p>
+                    <button class="drive-button primary-button" type="button" data-open-uploader><span class="material-symbols-outlined" aria-hidden="true">upload</span>Choose a video</button>
+                </div>
+                <p id="shorts-error" class="shorts-error" role="status" hidden></p>
+            </div>
+            <aside class="shorts-side-note">
+                <div class="shorts-side-icon material-symbols-outlined" aria-hidden="true">vertical_align_center</div>
+                <p>Swipe or scroll to the next clip</p>
+                <span>UP / DOWN</span>
+            </aside>
+        </section>
+        <p id="shorts-status" class="shorts-status" role="status" aria-live="polite"></p>
+    </main>
+
+    <dialog id="upload-short-dialog" class="drive-dialog shorts-dialog">
+        <form id="upload-short-form">
+            <div class="dialog-header"><div><p class="dialog-kicker">SHORTS</p><h2>Share a video</h2></div><button class="icon-button dialog-close" type="button" data-close-short-dialog aria-label="Close"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></div>
+            <div id="selected-video-name" class="selected-video-name"><span class="material-symbols-outlined" aria-hidden="true">movie</span><span>Choose an MP4, WebM, MOV, or M4V video (up to 250 MB).</span></div>
+            <label class="dialog-label" for="short-caption">Caption</label>
+            <textarea id="short-caption" class="dialog-input short-caption-input" maxlength="500" rows="4" placeholder="Add a caption..."></textarea>
+            <div class="dialog-actions"><button class="drive-button" type="button" data-close-short-dialog>Cancel</button><button id="publish-short-button" class="drive-button primary-button" type="submit" disabled><span class="material-symbols-outlined" aria-hidden="true">publish</span>Publish</button></div>
+        </form>
+    </dialog>
+
+    <dialog id="short-comments-dialog" class="drive-dialog shorts-dialog comments-dialog">
+        <div class="dialog-header"><div><p class="dialog-kicker">THE CONVERSATION</p><h2 id="comments-title">Comments</h2></div><button class="icon-button dialog-close" type="button" data-close-short-dialog aria-label="Close"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></div>
+        <div id="short-comments-list" class="short-comments-list"></div>
+        <form id="short-comment-form" class="short-comment-form">
+            <label class="dialog-label" for="comment-name">Your name</label>
+            <input id="comment-name" class="dialog-input" type="text" maxlength="32" autocomplete="name" placeholder="Viewer">
+            <label class="dialog-label" for="comment-text">Add a comment</label>
+            <textarea id="comment-text" class="dialog-input short-caption-input" maxlength="500" rows="3" required placeholder="Write a comment..."></textarea>
+            <div class="dialog-actions"><button class="drive-button primary-button" type="submit"><span class="material-symbols-outlined" aria-hidden="true">send</span>Comment</button></div>
+        </form>
+    </dialog>
+
+    <script src="/js/theme.js"></script>
+    <script src="/js/shorts.js"></script>
+</body>
+</html>

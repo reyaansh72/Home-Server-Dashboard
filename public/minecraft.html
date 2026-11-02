@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#323233">
+    <title>Minecraft Server | Home Server</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/storage.css">
+    <link rel="stylesheet" href="/css/minecraft.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-top"><a href="/" aria-label="Server overview"><img src="/assets/favicon.svg" class="logo" alt="Logo"></a></div>
+        <nav class="sidebar-nav" aria-label="Main navigation">
+            <a class="sidebar-link" href="/" aria-label="Server overview" title="Server overview"><span class="material-symbols-outlined" aria-hidden="true">dashboard</span></a>
+            <a class="sidebar-link" href="/storage.html" aria-label="Storage" title="Storage"><span class="material-symbols-outlined" aria-hidden="true">folder_open</span></a>
+            <a class="sidebar-link" href="/shorts.html" aria-label="Shorts" title="Shorts"><span class="material-symbols-outlined" aria-hidden="true">smart_display</span></a>
+            <a class="sidebar-link" href="/repos.html" aria-label="Repositories" title="Repositories"><span class="material-symbols-outlined" aria-hidden="true">source</span></a>
+            <a class="sidebar-link active" href="/minecraft.html" aria-label="Minecraft server" title="Minecraft server"><span class="material-symbols-outlined" aria-hidden="true">stadia_controller</span></a>
+            <a class="sidebar-link" href="/terminal.html" aria-label="Operations terminal" title="Operations terminal"><span class="material-symbols-outlined" aria-hidden="true">terminal</span></a>
+        </nav>
+    </aside>
+
+    <main class="main minecraft-main">
+        <header class="minecraft-header">
+            <div class="minecraft-title"><span class="material-symbols-outlined" aria-hidden="true">stadia_controller</span><div><p class="eyebrow">HOME SERVER GAME HOSTING</p><h1>Minecraft</h1></div></div>
+            <div class="minecraft-header-actions"><span id="minecraft-status-pill" class="minecraft-status-pill"><span class="status-dot"></span><span id="minecraft-status-text">Loading</span></span><button id="refresh-minecraft" class="icon-button" type="button" title="Refresh status" aria-label="Refresh status"><span class="material-symbols-outlined" aria-hidden="true">refresh</span></button></div>
+        </header>
+
+        <section id="minecraft-empty" class="minecraft-empty" hidden>
+            <span class="material-symbols-outlined" aria-hidden="true">sports_esports</span>
+            <h2>One server, ready when you are.</h2>
+            <p>Create a managed server by uploading a server JAR or importing a server folder. Choose a Java runtime, allocate memory, and accept Mojang's EULA.</p>
+            <button id="open-minecraft-create" class="drive-button primary-button" type="button"><span class="material-symbols-outlined" aria-hidden="true">add</span>Create server</button>
+        </section>
+
+        <section id="minecraft-workspace" class="minecraft-workspace" hidden>
+            <div class="minecraft-summary">
+                <div class="minecraft-server-identity"><span class="server-avatar material-symbols-outlined" aria-hidden="true">sports_esports</span><div><p class="repo-owner-label">MANAGED SERVER</p><h2 id="minecraft-name">Minecraft server</h2><p id="minecraft-details">Java -- · -- MB RAM</p></div><button id="rename-minecraft" class="icon-button" type="button" title="Rename server" aria-label="Rename server"><span class="material-symbols-outlined" aria-hidden="true">edit</span></button></div>
+                <div class="minecraft-controls"><span id="minecraft-pid" class="minecraft-pid"></span><a id="minecraft-files-link" class="drive-button" href="/storage.html?scope=minecraft"><span class="material-symbols-outlined" aria-hidden="true">folder_open</span>Open files</a><button id="start-minecraft" class="drive-button primary-button" type="button"><span class="material-symbols-outlined" aria-hidden="true">play_arrow</span>Start</button><button id="stop-minecraft" class="drive-button" type="button"><span class="material-symbols-outlined" aria-hidden="true">stop</span>Stop</button><button id="delete-minecraft" class="icon-button danger-icon" type="button" title="Delete server" aria-label="Delete server"><span class="material-symbols-outlined" aria-hidden="true">delete</span></button></div>
+            </div>
+
+            <nav class="minecraft-tabs" aria-label="Minecraft server sections">
+                <button class="minecraft-tab active" type="button" data-mc-view="overview"><span class="material-symbols-outlined" aria-hidden="true">monitoring</span>Overview</button>
+                <button class="minecraft-tab" type="button" data-mc-view="files"><span class="material-symbols-outlined" aria-hidden="true">folder_open</span>Files</button>
+                <button class="minecraft-tab" type="button" data-mc-view="console"><span class="material-symbols-outlined" aria-hidden="true">terminal</span>Console</button>
+            </nav>
+
+            <section id="minecraft-view-overview" class="minecraft-view active-minecraft-view">
+                <div class="minecraft-overview-grid">
+                    <article class="minecraft-card"><div class="minecraft-card-title"><span>SERVER STATE</span><span class="material-symbols-outlined" aria-hidden="true">sensors</span></div><strong id="overview-server-state">Stopped</strong><p id="overview-server-meta">Server process is not running</p></article>
+                    <article class="minecraft-card"><div class="minecraft-card-title"><span>JAVA RUNTIME</span><span class="material-symbols-outlined" aria-hidden="true">coffee</span></div><strong id="overview-java-version">Java --</strong><p id="overview-java-installed">Runtime not installed yet</p></article>
+                    <article class="minecraft-card"><div class="minecraft-card-title"><span>MEMORY LIMIT</span><span class="material-symbols-outlined" aria-hidden="true">memory</span></div><strong id="overview-ram">-- MB</strong><p>Maximum heap allocated to the server</p></article>
+                </div>
+                <div class="minecraft-settings"><div><h3>Runtime setup</h3><p>Install a Temurin Java runtime for the selected version.</p></div><div class="runtime-actions"><select id="runtime-version" aria-label="Java version"></select><button id="install-runtime" class="drive-button" type="button"><span class="material-symbols-outlined" aria-hidden="true">download</span>Install Java</button></div></div>
+                <div class="minecraft-settings"><div><h3>Server management</h3><p>One managed server directory. Export or delete it from here.</p></div><div class="runtime-actions"><button id="download-server-folder" class="drive-button" type="button" disabled><span class="material-symbols-outlined" aria-hidden="true">folder_zip</span>Download folder</button></div></div>
+            </section>
+
+            <section id="minecraft-view-files" class="minecraft-view">
+                <div class="mc-files-layout"><aside class="mc-file-panel"><div class="mc-files-heading"><span>SERVER FILES</span><button id="refresh-mc-files" class="icon-button" type="button" title="Refresh files" aria-label="Refresh files"><span class="material-symbols-outlined" aria-hidden="true">refresh</span></button></div><div id="mc-breadcrumb" class="repo-breadcrumb"></div><div id="mc-file-tree" class="repo-file-tree"></div></aside><section class="mc-file-editor"><div class="repo-editor-heading"><span id="mc-open-file">Select a text file</span><div class="editor-actions"><button id="mc-delete-file" class="icon-button danger-icon" type="button" title="Delete file" aria-label="Delete file" hidden><span class="material-symbols-outlined" aria-hidden="true">delete</span></button><button id="mc-save-file" class="drive-button primary-button" type="button" disabled><span class="material-symbols-outlined" aria-hidden="true">save</span>Save</button></div></div><textarea id="mc-editor" spellcheck="false" aria-label="Minecraft server file editor"></textarea></section></div>
+            </section>
+
+            <section id="minecraft-view-console" class="minecraft-view">
+                <div class="mc-console-header"><div><h3>Minecraft console</h3><p>Commands are sent to the Minecraft server process only.</p></div><button id="clear-mc-console" class="icon-button" type="button" title="Clear console" aria-label="Clear console"><span class="material-symbols-outlined" aria-hidden="true">delete_sweep</span></button></div>
+                <div id="mc-console-output" class="mc-console-output" aria-live="polite"></div>
+                <form id="mc-console-form" class="mc-console-form"><span class="mc-console-prompt">mc&gt;</span><input id="mc-console-input" type="text" autocomplete="off" placeholder="say Hello, players" aria-label="Minecraft console command" maxlength="1000"><button type="submit" class="icon-button" title="Send command" aria-label="Send command"><span class="material-symbols-outlined" aria-hidden="true">send</span></button></form>
+            </section>
+        </section>
+        <p id="minecraft-message" class="repo-status-message" role="status" aria-live="polite"></p>
+    </main>
+
+    <dialog id="minecraft-create-dialog" class="drive-dialog mc-dialog">
+        <form id="minecraft-create-form"><div class="dialog-header"><div><p class="dialog-kicker">ONE MANAGED SERVER</p><h2>Create Minecraft server</h2></div><button class="icon-button dialog-close" type="button" data-close-mc-dialog aria-label="Close"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></div><label class="dialog-label" for="mc-name-input">Server name</label><input id="mc-name-input" class="dialog-input" type="text" maxlength="64" required value="My Minecraft Server"><label class="dialog-label" for="mc-java-select">Java version</label><select id="mc-java-select" class="dialog-input"></select><label class="dialog-label" for="mc-ram-input">Memory (MB)</label><input id="mc-ram-input" class="dialog-input" type="number" min="512" step="512" value="2048" required><label class="dialog-label" for="mc-jar-name">Server JAR relative path</label><input id="mc-jar-name" class="dialog-input" value="server.jar" required><fieldset class="mc-source-options"><legend>Server files</legend><label><input type="radio" name="mc-source" value="jar" checked><span>Upload a server JAR</span></label><label><input type="radio" name="mc-source" value="folder"><span>Import a full server folder</span></label></fieldset><label class="mc-upload-pick" id="mc-jar-pick"><span class="material-symbols-outlined" aria-hidden="true">upload_file</span><span id="mc-jar-file-label">Choose server.jar</span><input id="mc-jar-file" type="file" accept=".jar,application/java-archive" required></label><label class="mc-upload-pick" id="mc-folder-pick" hidden><span class="material-symbols-outlined" aria-hidden="true">folder_zip</span><span id="mc-folder-file-label">Choose server folder</span><input id="mc-folder-files" type="file" webkitdirectory multiple></label><label class="mc-eula-check"><input id="mc-eula-check" type="checkbox" required><span>I accept the <a href="https://www.minecraft.net/eula" target="_blank" rel="noreferrer">Minecraft EULA</a> and agree to its terms.</span></label><p class="dialog-hint">Java runtime downloads from Eclipse Temurin. Server JAR files must be provided by you.</p><div class="dialog-actions"><button class="drive-button" type="button" data-close-mc-dialog>Cancel</button><button id="mc-create-submit" class="drive-button primary-button" type="submit">Create &amp; install Java</button></div></form>
+    </dialog>
+
+    <dialog id="minecraft-rename-dialog" class="drive-dialog mc-dialog"><form id="minecraft-rename-form"><div class="dialog-header"><div><p class="dialog-kicker">SERVER SETTINGS</p><h2>Rename server</h2></div><button class="icon-button dialog-close" type="button" data-close-mc-dialog aria-label="Close"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></div><label class="dialog-label" for="mc-rename-input">Server name</label><input id="mc-rename-input" class="dialog-input" maxlength="64" required><div class="dialog-actions"><button class="drive-button" type="button" data-close-mc-dialog>Cancel</button><button class="drive-button primary-button" type="submit">Save</button></div></form></dialog>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/mode/loadmode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+    <script src="/js/theme.js?v=daypart-background"></script>
+    <script src="/js/minecraft.js"></script>
+</body>
+</html>

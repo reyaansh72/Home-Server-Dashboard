@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#323233">
+    <title>Operations Terminal | Home Server</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/terminal.css">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-top"><a href="/" aria-label="Server overview"><img src="/assets/favicon.svg" class="logo" alt="Logo"></a></div>
+        <nav class="sidebar-nav" aria-label="Main navigation">
+            <a class="sidebar-link" href="/" aria-label="Server overview" title="Server overview"><span class="material-symbols-outlined" aria-hidden="true">dashboard</span></a>
+            <a class="sidebar-link" href="/storage.html" aria-label="Storage" title="Storage"><span class="material-symbols-outlined" aria-hidden="true">folder_open</span></a>
+            <a class="sidebar-link" href="/shorts.html" aria-label="Shorts" title="Shorts"><span class="material-symbols-outlined" aria-hidden="true">smart_display</span></a>
+            <a class="sidebar-link" href="/repos.html" aria-label="Repositories" title="Repositories"><span class="material-symbols-outlined" aria-hidden="true">source</span></a>
+            <a class="sidebar-link" href="/minecraft.html" aria-label="Minecraft server" title="Minecraft server"><span class="material-symbols-outlined" aria-hidden="true">stadia_controller</span></a>
+            <a class="sidebar-link active" href="/terminal.html" aria-label="Operations terminal" title="Operations terminal"><span class="material-symbols-outlined" aria-hidden="true">terminal</span></a>
+        </nav>
+    </aside>
+
+    <main class="main terminal-main">
+        <header class="terminal-header"><div class="terminal-title"><span class="material-symbols-outlined" aria-hidden="true">terminal</span><div><p class="eyebrow">HOME SERVER OPERATIONS</p><h1>Terminal</h1></div></div><div class="terminal-host"><span class="status-dot"></span><span id="terminal-hostname">Connecting...</span></div></header>
+        <section class="terminal-layout">
+            <aside class="terminal-command-panel"><p class="terminal-section-label">OPERATIONS</p><p class="terminal-copy">Run built-in host checks and inspect managed services.</p><div class="terminal-command-list"><button type="button" data-command="help"><span class="material-symbols-outlined">help</span>Help</button><button type="button" data-command="status"><span class="material-symbols-outlined">monitoring</span>System status</button><button type="button" data-command="uptime"><span class="material-symbols-outlined">schedule</span>Uptime</button><button type="button" data-command="disk"><span class="material-symbols-outlined">hard_drive</span>Disk space</button><button type="button" data-command="memory"><span class="material-symbols-outlined">memory</span>Memory</button><button type="button" data-command="repos"><span class="material-symbols-outlined">source</span>Repositories</button><button type="button" data-command="minecraft"><span class="material-symbols-outlined">stadia_controller</span>Minecraft status</button></div><p class="terminal-security-note"><span class="material-symbols-outlined" aria-hidden="true">info</span><span>Built-in operations and allowlisted host commands only. Commands run without a shell.</span></p></aside>
+            <section class="terminal-console-panel" aria-label="Operations command console">
+                <div class="terminal-windowbar"><div class="window-dots"><span></span><span></span><span></span></div><span id="terminal-cwd">home-server · operations</span><button id="clear-terminal" class="icon-button" type="button" title="Clear terminal" aria-label="Clear terminal"><span class="material-symbols-outlined">delete_sweep</span></button></div>
+                <div id="terminal-output" class="terminal-output" role="log" aria-live="polite"></div>
+                <form id="terminal-form" class="terminal-input-row"><label for="terminal-command-input">&gt;</label><input id="terminal-command-input" type="text" autocomplete="off" spellcheck="false" placeholder="Type an operation or allowed command"><button type="submit" class="icon-button" title="Run command" aria-label="Run command"><span class="material-symbols-outlined">arrow_forward</span></button></form>
+                <div class="terminal-footer"><span id="terminal-result-state">Ready</span><span>Up / Down recalls command history</span></div>
+            </section>
+        </section>
+    </main>
+    <script src="/js/theme.js?v=daypart-background"></script>
+    <script src="/js/terminal.js"></script>
+</body>
+</html>

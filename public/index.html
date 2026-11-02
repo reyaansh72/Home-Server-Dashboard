@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Server | System Overview</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- Google Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-top">
+            <a href="/" aria-label="Server overview"><img src="/assets/favicon.svg" class="logo" alt="Logo"></a>
+        </div>
+        <nav class="sidebar-nav" aria-label="Main navigation">
+            <a class="sidebar-link active" href="/" aria-label="Server overview" title="Server overview">
+                <span class="material-symbols-outlined" aria-hidden="true">dashboard</span>
+            </a>
+            <a class="sidebar-link" href="/storage.html" aria-label="Storage" title="Storage">
+                <span class="material-symbols-outlined" aria-hidden="true">folder_open</span>
+            </a>
+            <a class="sidebar-link" href="/shorts.html" aria-label="Shorts" title="Shorts">
+                <span class="material-symbols-outlined" aria-hidden="true">smart_display</span>
+            </a>
+            <a class="sidebar-link" href="/repos.html" aria-label="Repositories" title="Repositories">
+                <span class="material-symbols-outlined" aria-hidden="true">source</span>
+            </a>
+            <a class="sidebar-link" href="/minecraft.html" aria-label="Minecraft server" title="Minecraft server">
+                <span class="material-symbols-outlined" aria-hidden="true">stadia_controller</span>
+            </a>
+            <a class="sidebar-link" href="/terminal.html" aria-label="Operations terminal" title="Operations terminal">
+                <span class="material-symbols-outlined" aria-hidden="true">terminal</span>
+            </a>
+        </nav>
+    </aside>
+    <main class="main">
+        <header class="topbar">
+            <div class="daypart-indicator" aria-label="Current time of day">
+                <span id="daypart-icon" class="material-symbols-outlined" aria-hidden="true">light_mode</span>
+                <span id="daypart-label">Loading</span>
+                <time id="daypart-clock"></time>
+            </div>
+            <div class="connection"><span class="status-dot"></span><span id="connection-label">Connecting</span></div>
+        </header>
+
+        <section class="intro" aria-labelledby="page-title">
+            <div>
+                <p class="eyebrow">SYSTEM MONITOR <span id="current-date"></span></p>
+                <h1 id="page-title">Server overview</h1>
+                <p class="intro-copy">A live look at the machine running your home network.</p>
+            </div>
+            <div class="host-chip">
+                <span class="host-icon material-symbols-outlined" aria-hidden="true">computer</span>
+                <span><small>HOST</small><strong id="hostname">Loading host...</strong></span>
+            </div>
+        </section>
+
+        <section class="stats-grid" aria-label="Server resource usage">
+            <article class="stat-card cpu-card">
+                <div class="card-heading"><span>PROCESSOR</span><span class="material-symbols-outlined" aria-hidden="true">memory</span></div>
+                <div class="stat-value"><strong id="cpu-value">--</strong><span>%</span></div>
+                <p class="stat-detail" id="cpu-detail">Waiting for system data</p>
+                <div class="meter"><span id="cpu-meter"></span></div>
+                <div class="meter-labels"><span>0%</span><span>UTILIZATION</span><span>100%</span></div>
+            </article>
+
+            <article class="stat-card memory-card">
+                <div class="card-heading"><span>MEMORY</span><span class="material-symbols-outlined" aria-hidden="true">developer_board</span></div>
+                <div class="stat-value"><strong id="memory-value">--</strong><span>%</span></div>
+                <p class="stat-detail" id="memory-detail">Waiting for system data</p>
+                <div class="meter"><span id="memory-meter"></span></div>
+                <div class="meter-labels"><span>0%</span><span>IN USE</span><span>100%</span></div>
+            </article>
+
+            <article class="stat-card storage-card">
+                <div class="card-heading"><span>STORAGE</span><span class="material-symbols-outlined" aria-hidden="true">database</span></div>
+                <div class="stat-value"><strong id="storage-value">--</strong><span>%</span></div>
+                <p class="stat-detail" id="storage-detail">Waiting for filesystem data</p>
+                <div class="meter"><span id="storage-meter"></span></div>
+                <div class="meter-labels"><span>0%</span><span>DISK USED</span><span>100%</span></div>
+            </article>
+
+            <article class="stat-card uptime-card">
+                <div class="card-heading"><span>UPTIME</span><span class="material-symbols-outlined" aria-hidden="true">schedule</span></div>
+                <div class="uptime-value" id="uptime-value">--</div>
+                <p class="stat-detail">Since last system boot</p>
+                <div class="uptime-foot"><span class="status-dot"></span><span>ALL SYSTEMS OPERATIONAL</span></div>
+            </article>
+        </section>
+
+        <section class="system-strip" aria-label="System information">
+            <div class="strip-title"><span class="material-symbols-outlined" aria-hidden="true">tune</span><span>HOST DETAILS</span></div>
+            <div class="system-item"><span>Operating system</span><strong id="platform">--</strong></div>
+            <div class="system-item"><span>Node runtime</span><strong id="node-version">--</strong></div>
+            <div class="system-item"><span>CPU load average</span><strong id="load-average">--</strong></div>
+            <div class="system-item"><span>Last updated</span><strong id="updated-at">--</strong></div>
+        </section>
+
+        <footer class="page-footer"><span>HOME SERVER MONITOR</span><span>Refreshes automatically every 2.5 seconds</span></footer>
+    </main>
+    <script src="/js/theme.js?v=daypart-background"></script>
+    <script src="/js/dashboard.js"></script>
+</body>
+</html>

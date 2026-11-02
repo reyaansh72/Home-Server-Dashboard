@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#323233">
+    <title>Repositories | Home Server</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/storage.css">
+    <link rel="stylesheet" href="/css/repos.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-top"><a href="/" aria-label="Server overview"><img src="/assets/favicon.svg" class="logo" alt="Logo"></a></div>
+        <nav class="sidebar-nav" aria-label="Main navigation">
+            <a class="sidebar-link" href="/" aria-label="Server overview" title="Server overview"><span class="material-symbols-outlined" aria-hidden="true">dashboard</span></a>
+            <a class="sidebar-link" href="/storage.html" aria-label="Storage" title="Storage"><span class="material-symbols-outlined" aria-hidden="true">folder_open</span></a>
+            <a class="sidebar-link" href="/shorts.html" aria-label="Shorts" title="Shorts"><span class="material-symbols-outlined" aria-hidden="true">smart_display</span></a>
+            <a class="sidebar-link active" href="/repos.html" aria-label="Repositories" title="Repositories"><span class="material-symbols-outlined" aria-hidden="true">source</span></a>
+            <a class="sidebar-link" href="/minecraft.html" aria-label="Minecraft server" title="Minecraft server"><span class="material-symbols-outlined" aria-hidden="true">stadia_controller</span></a>
+            <a class="sidebar-link" href="/terminal.html" aria-label="Operations terminal" title="Operations terminal"><span class="material-symbols-outlined" aria-hidden="true">terminal</span></a>
+        </nav>
+    </aside>
+
+    <main class="main repos-main">
+        <header class="repos-header">
+            <div class="repos-brand"><span class="material-symbols-outlined" aria-hidden="true">source</span><div><p class="eyebrow">HOME SERVER DEVELOPMENT</p><h1>Repositories</h1></div></div>
+            <div class="repos-header-actions"><span id="repo-count">Loading repos...</span><button id="create-repo-button" class="drive-button primary-button" type="button"><span class="material-symbols-outlined" aria-hidden="true">add</span>New repository</button></div>
+        </header>
+
+        <section class="repos-workspace">
+            <aside class="repo-list-panel" aria-label="Repositories">
+                <div class="repo-list-heading"><span>YOUR REPOSITORIES</span><button id="refresh-repos-button" class="icon-button" type="button" title="Refresh repositories" aria-label="Refresh repositories"><span class="material-symbols-outlined" aria-hidden="true">refresh</span></button></div>
+                <label class="repo-search"><span class="material-symbols-outlined" aria-hidden="true">search</span><input id="repo-search-input" type="search" placeholder="Find a repository" aria-label="Find a repository"></label>
+                <div id="repo-list" class="repo-list"></div>
+                <p id="repo-list-empty" class="repo-list-empty">No repositories yet.</p>
+            </aside>
+
+            <section class="repo-detail" aria-label="Repository workspace">
+                <div id="repo-welcome" class="repo-welcome">
+                    <span class="material-symbols-outlined" aria-hidden="true">account_tree</span>
+                    <h2>Your code, organized.</h2>
+                    <p>Create a repository to edit files, review changes, make commits, and publish releases.</p>
+                    <button class="drive-button primary-button" type="button" data-create-repo><span class="material-symbols-outlined" aria-hidden="true">add</span>Create repository</button>
+                </div>
+
+                <div id="repo-content" class="repo-content" hidden>
+                    <div class="repo-titlebar">
+                        <div class="repo-name-block"><span class="repo-avatar material-symbols-outlined" aria-hidden="true">folder_open</span><div><p class="repo-owner-label">YOUR REPOSITORIES</p><h2 id="active-repo-name">Repository</h2></div><span class="repo-visibility">Private</span></div>
+                        <div class="repo-toolbar-actions">
+                            <label class="branch-control"><span class="material-symbols-outlined" aria-hidden="true">account_tree</span><select id="branch-select" aria-label="Current branch"></select></label>
+                            <button id="new-branch-button" class="icon-button" type="button" title="Create branch" aria-label="Create branch"><span class="material-symbols-outlined" aria-hidden="true">add</span></button>
+                            <button id="push-button" class="drive-button push-button" type="button"><span class="material-symbols-outlined" aria-hidden="true">cloud_upload</span>Push</button>
+                        </div>
+                    </div>
+
+                    <div class="repo-metadata-row">
+                        <span id="repo-description" class="repo-description">No description provided</span>
+                        <form id="remote-form" class="remote-form"><span class="material-symbols-outlined" aria-hidden="true">link</span><input id="remote-url" type="url" placeholder="Add HTTPS or SSH remote" aria-label="Git remote URL"><button class="icon-button" type="submit" title="Save remote" aria-label="Save remote"><span class="material-symbols-outlined" aria-hidden="true">save</span></button></form>
+                    </div>
+
+                    <nav class="repo-tabs" aria-label="Repository sections">
+                        <button class="repo-tab active" type="button" data-view="code"><span class="material-symbols-outlined" aria-hidden="true">code</span>Code</button>
+                        <button class="repo-tab" type="button" data-view="changes"><span class="material-symbols-outlined" aria-hidden="true">edit_note</span>Changes<span id="change-count" class="tab-count">0</span></button>
+                        <button class="repo-tab" type="button" data-view="commits"><span class="material-symbols-outlined" aria-hidden="true">history</span>Commits</button>
+                        <button class="repo-tab" type="button" data-view="readme"><span class="material-symbols-outlined" aria-hidden="true">description</span>README</button>
+                        <button class="repo-tab" type="button" data-view="releases"><span class="material-symbols-outlined" aria-hidden="true">sell</span>Releases</button>
+                    </nav>
+
+                    <section id="view-code" class="repo-view active-view">
+                        <div class="code-layout">
+                            <aside class="repo-file-panel">
+                                <div class="repo-file-heading"><span>FILES</span><button id="new-repo-file-button" class="icon-button" type="button" title="New file" aria-label="New file"><span class="material-symbols-outlined" aria-hidden="true">note_add</span></button></div>
+                                <div id="repo-breadcrumb" class="repo-breadcrumb"></div>
+                                <div id="repo-file-tree" class="repo-file-tree"></div>
+                            </aside>
+                            <section class="repo-editor-panel">
+                                <div class="repo-editor-heading"><div><span id="open-file-path">Select a file</span><span id="file-dirty-indicator" hidden>Unsaved</span></div><div class="editor-actions"><button id="editor-preview-button" class="icon-button" type="button" title="Preview Markdown" aria-label="Preview Markdown" hidden><span class="material-symbols-outlined" aria-hidden="true">visibility</span></button><button id="delete-file-button" class="icon-button danger-icon" type="button" title="Delete file" aria-label="Delete file" hidden><span class="material-symbols-outlined" aria-hidden="true">delete</span></button><button id="save-file-button" class="drive-button primary-button" type="button" disabled><span class="material-symbols-outlined" aria-hidden="true">save</span>Save file</button></div></div>
+                                <div id="repo-editor-wrap" class="repo-editor-wrap"><textarea id="repo-code-editor" spellcheck="false" aria-label="File editor"></textarea><div id="readme-preview" class="readme-preview" hidden></div></div>
+                            </section>
+                        </div>
+                    </section>
+
+                    <section id="view-changes" class="repo-view"><div class="view-heading"><div><h3>Working tree</h3><p>Changes in this repository</p></div><button id="changes-commit-button" class="drive-button primary-button" type="button" disabled><span class="material-symbols-outlined" aria-hidden="true">check</span>Commit changes</button></div><div id="changes-list" class="changes-list"></div></section>
+                    <section id="view-commits" class="repo-view"><div class="view-heading"><div><h3>Commit history</h3><p>Latest changes on the current branch</p></div></div><div id="commit-list" class="timeline-list"></div></section>
+                    <section id="view-readme" class="repo-view"><div class="view-heading"><div><h3>README</h3><p id="readme-status">Rendered project overview</p></div><button id="edit-readme-button" class="drive-button" type="button"><span class="material-symbols-outlined" aria-hidden="true">edit</span>Edit README</button></div><article id="readme-rendered" class="repo-readme markdown-body"></article></section>
+                    <section id="view-releases" class="repo-view"><div class="view-heading"><div><h3>Releases</h3><p>Version tags and release notes</p></div><button id="new-release-button" class="drive-button primary-button" type="button"><span class="material-symbols-outlined" aria-hidden="true">new_label</span>Draft release</button></div><div id="release-list" class="release-list"></div></section>
+                </div>
+                <p id="repo-status-message" class="repo-status-message" role="status" aria-live="polite"></p>
+            </section>
+        </section>
+    </main>
+
+    <dialog id="repo-dialog" class="drive-dialog repo-dialog">
+        <form id="repo-form"><div class="dialog-header"><div><p class="dialog-kicker">GIT WORKSPACE</p><h2>Create a repository</h2></div><button class="icon-button dialog-close" type="button" data-close-repo-dialog aria-label="Close"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></div><label class="dialog-label" for="repo-name-input">Repository name</label><input id="repo-name-input" class="dialog-input" type="text" maxlength="80" pattern="[A-Za-z0-9][A-Za-z0-9._-]*" required placeholder="my-project"><label class="dialog-label" for="repo-description-input">Description</label><input id="repo-description-input" class="dialog-input" type="text" maxlength="500" placeholder="What are you building?"><div class="dialog-actions"><button class="drive-button" type="button" data-close-repo-dialog>Cancel</button><button class="drive-button primary-button" type="submit">Create repository</button></div></form>
+    </dialog>
+
+    <dialog id="commit-dialog" class="drive-dialog repo-dialog">
+        <form id="commit-form"><div class="dialog-header"><div><p class="dialog-kicker">GIT COMMIT</p><h2>Save your changes</h2></div><button class="icon-button dialog-close" type="button" data-close-repo-dialog aria-label="Close"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></div><label class="dialog-label" for="commit-message-input">Commit message</label><input id="commit-message-input" class="dialog-input" maxlength="500" required placeholder="Describe this change"><div class="dialog-hint">All modified files will be included in this commit.</div><div class="dialog-actions"><button class="drive-button" type="button" data-close-repo-dialog>Cancel</button><button class="drive-button primary-button" type="submit">Commit changes</button></div></form>
+    </dialog>
+
+    <dialog id="branch-dialog" class="drive-dialog repo-dialog">
+        <form id="branch-form"><div class="dialog-header"><div><p class="dialog-kicker">GIT BRANCH</p><h2>Create a branch</h2></div><button class="icon-button dialog-close" type="button" data-close-repo-dialog aria-label="Close"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></div><label class="dialog-label" for="branch-name-input">Branch name</label><input id="branch-name-input" class="dialog-input" maxlength="100" required placeholder="feature/my-change"><div class="dialog-actions"><button class="drive-button" type="button" data-close-repo-dialog>Cancel</button><button class="drive-button primary-button" type="submit">Create branch</button></div></form>
+    </dialog>
+
+    <dialog id="release-dialog" class="drive-dialog repo-dialog">
+        <form id="release-form"><div class="dialog-header"><div><p class="dialog-kicker">GIT RELEASE</p><h2>Draft a release</h2></div><button class="icon-button dialog-close" type="button" data-close-repo-dialog aria-label="Close"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></div><label class="dialog-label" for="release-tag-input">Version tag</label><input id="release-tag-input" class="dialog-input" maxlength="80" required placeholder="v1.0.0"><label class="dialog-label" for="release-notes-input">Release notes</label><textarea id="release-notes-input" class="dialog-input release-notes-input" rows="6" maxlength="500" required placeholder="What's included in this release?"></textarea><div class="dialog-hint">Creates an annotated Git tag on the current commit.</div><div class="dialog-actions"><button class="drive-button" type="button" data-close-repo-dialog>Cancel</button><button class="drive-button primary-button" type="submit">Publish release</button></div></form>
+    </dialog>
+
+    <dialog id="new-file-dialog" class="drive-dialog repo-dialog">
+        <form id="new-file-form"><div class="dialog-header"><div><p class="dialog-kicker">REPOSITORY FILE</p><h2>Create a file</h2></div><button class="icon-button dialog-close" type="button" data-close-repo-dialog aria-label="Close"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></div><label class="dialog-label" for="new-file-path-input">File path</label><input id="new-file-path-input" class="dialog-input" type="text" maxlength="240" required placeholder="src/index.js"><div class="dialog-hint">Use a relative path. Parent folders are created automatically.</div><div class="dialog-actions"><button class="drive-button" type="button" data-close-repo-dialog>Cancel</button><button class="drive-button primary-button" type="submit">Create file</button></div></form>
+    </dialog>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/mode/loadmode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/meta.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.6/purify.min.js"></script>
+    <script src="/js/theme.js?v=daypart-background"></script>
+    <script src="/js/repos.js"></script>
+</body>
+</html>

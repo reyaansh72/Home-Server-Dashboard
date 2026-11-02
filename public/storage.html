@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#323233">
+    <title>Storage | Home Server</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/storage.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-top">
+            <a href="/" aria-label="Server overview"><img src="/assets/favicon.svg" class="logo" alt="Logo"></a>
+        </div>
+        <nav class="sidebar-nav" aria-label="Main navigation">
+            <a class="sidebar-link" href="/" aria-label="Server overview" title="Server overview">
+                <span class="material-symbols-outlined" aria-hidden="true">dashboard</span>
+            </a>
+            <a class="sidebar-link active" href="/storage.html" aria-label="Storage" title="Storage">
+                <span class="material-symbols-outlined" aria-hidden="true">folder_open</span>
+            </a>
+            <a class="sidebar-link" href="/shorts.html" aria-label="Shorts" title="Shorts">
+                <span class="material-symbols-outlined" aria-hidden="true">smart_display</span>
+            </a>
+            <a class="sidebar-link" href="/repos.html" aria-label="Repositories" title="Repositories">
+                <span class="material-symbols-outlined" aria-hidden="true">source</span>
+            </a>
+            <a class="sidebar-link" href="/minecraft.html" aria-label="Minecraft server" title="Minecraft server"><span class="material-symbols-outlined" aria-hidden="true">stadia_controller</span></a>
+            <a class="sidebar-link" href="/terminal.html" aria-label="Operations terminal" title="Operations terminal"><span class="material-symbols-outlined" aria-hidden="true">terminal</span></a>
+        </nav>
+    </aside>
+
+    <main class="main storage-main">
+        <header class="drive-header">
+            <div class="drive-title-wrap">
+                <span class="drive-mark material-symbols-outlined" aria-hidden="true">cloud</span>
+                <h1>My Drive</h1>
+            </div>
+            <label class="drive-search">
+                <span class="material-symbols-outlined" aria-hidden="true">search</span>
+                <input id="search-input" type="search" placeholder="Search in Drive" autocomplete="off" aria-label="Search files and folders">
+                <kbd>Ctrl K</kbd>
+            </label>
+            <a class="server-link" href="/" title="Server overview" aria-label="Server overview">
+                <span class="material-symbols-outlined" aria-hidden="true">dashboard</span>
+            </a>
+        </header>
+
+        <section class="drive-content">
+            <div class="drive-welcome">
+                <div>
+                    <p class="eyebrow">PERSONAL STORAGE</p>
+                    <h2>Files, right where you need them.</h2>
+                </div>
+                <div class="storage-usage" aria-live="polite">
+                    <span id="item-count">Loading files...</span>
+                    <span id="storage-path-label">Stored on this server</span>
+                </div>
+            </div>
+
+            <div class="drive-actions" aria-label="File actions">
+                <button class="drive-button primary-button" id="new-folder-button" type="button">
+                    <span class="material-symbols-outlined" aria-hidden="true">create_new_folder</span><span>New folder</span>
+                </button>
+                <button class="drive-button" id="new-file-button" type="button">
+                    <span class="material-symbols-outlined" aria-hidden="true">note_add</span><span>New text file</span>
+                </button>
+                <button class="drive-button" id="upload-button" type="button">
+                    <span class="material-symbols-outlined" aria-hidden="true">upload</span><span>Upload</span>
+                </button>
+                <input id="file-input" type="file" multiple hidden>
+            </div>
+
+            <nav class="drive-tabs" aria-label="File collections">
+                <button type="button" class="drive-tab active" data-filter="all"><span class="material-symbols-outlined" aria-hidden="true">folder</span>My files</button>
+                <button type="button" class="drive-tab" data-filter="starred"><span class="material-symbols-outlined" aria-hidden="true">star</span>Starred</button>
+                <button type="button" class="drive-tab" data-filter="recent"><span class="material-symbols-outlined" aria-hidden="true">schedule</span>Recent</button>
+            </nav>
+
+            <div class="file-toolbar">
+                <nav id="breadcrumbs" class="breadcrumbs" aria-label="Current folder"></nav>
+                <div class="file-tools">
+                    <span id="selection-count" class="selection-count" aria-live="polite"></span>
+                    <button class="icon-button" id="refresh-files-button" type="button" title="Refresh files" aria-label="Refresh files"><span class="material-symbols-outlined" aria-hidden="true">refresh</span></button>
+                    <button class="icon-button" id="select-all-button" type="button" title="Select all" aria-label="Select all files"><span class="material-symbols-outlined" aria-hidden="true">select_all</span></button>
+                    <button class="icon-button" id="move-selected-button" type="button" title="Move selected" aria-label="Move selected files" hidden><span class="material-symbols-outlined" aria-hidden="true">drive_file_move</span></button>
+                    <button class="icon-button" id="download-selected-button" type="button" title="Download selected files" aria-label="Download selected files" hidden><span class="material-symbols-outlined" aria-hidden="true">download</span></button>
+                    <button class="icon-button" id="delete-selected-button" type="button" title="Delete selected" aria-label="Delete selected files" hidden><span class="material-symbols-outlined" aria-hidden="true">delete</span></button>
+                    <label class="sort-control"><span class="material-symbols-outlined" aria-hidden="true">sort</span>
+                        <select id="sort-select" aria-label="Sort files">
+                            <option value="name">Name</option>
+                            <option value="modified">Last modified</option>
+                            <option value="size">File size</option>
+                            <option value="type">File type</option>
+                        </select>
+                    </label>
+                    <button class="icon-button" id="sort-direction-button" type="button" title="Reverse sort order" aria-label="Reverse sort order"><span class="material-symbols-outlined" aria-hidden="true">arrow_upward</span></button>
+                    <div class="view-switch" role="group" aria-label="View mode">
+                        <button class="icon-button active" id="list-view-button" type="button" title="List view" aria-label="List view"><span class="material-symbols-outlined" aria-hidden="true">view_list</span></button>
+                        <button class="icon-button" id="grid-view-button" type="button" title="Grid view" aria-label="Grid view"><span class="material-symbols-outlined" aria-hidden="true">grid_view</span></button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="drop-zone" class="drop-zone">
+                <div id="files-view" class="files-view" aria-live="polite"></div>
+                <div id="empty-state" class="empty-state" hidden>
+                    <span class="material-symbols-outlined" aria-hidden="true">folder_open</span>
+                    <h3>This folder is empty</h3>
+                    <p>Create a folder or upload something to get started.</p>
+                </div>
+                <div id="loading-state" class="loading-state">Loading your files...</div>
+                <div id="drop-overlay" class="drop-overlay" aria-hidden="true"><span class="material-symbols-outlined">upload_file</span><strong>Drop files to upload</strong></div>
+            </div>
+            <p id="status-message" class="status-message" role="status" aria-live="polite"></p>
+        </section>
+    </main>
+
+    <dialog id="item-dialog" class="drive-dialog">
+        <form id="item-form" method="dialog">
+            <div class="dialog-header"><div><p class="dialog-kicker">MY DRIVE</p><h2 id="dialog-title">New folder</h2></div><button class="icon-button dialog-close" type="button" data-close-dialog aria-label="Close"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></div>
+            <label class="dialog-label" for="item-name">Name</label>
+            <input id="item-name" class="dialog-input" type="text" maxlength="180" required autocomplete="off">
+            <label id="content-label" class="dialog-label" for="item-content" hidden>Text content</label>
+            <div id="editor-tools" class="editor-tools" hidden>
+                <label for="language-select">Language</label>
+                <select id="language-select" class="language-select">
+                    <option value="auto">Auto detect</option>
+                    <option value="text">Plain text</option>
+                    <option value="python">Python</option>
+                    <option value="java">Java</option>
+                    <option value="c">C</option>
+                    <option value="cpp">C++</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="typescript">TypeScript</option>
+                    <option value="html">HTML</option>
+                    <option value="css">CSS</option>
+                    <option value="json">JSON</option>
+                    <option value="markdown">Markdown</option>
+                    <option value="yaml">YAML</option>
+                    <option value="shell">Shell</option>
+                    <option value="sql">SQL</option>
+                    <option value="go">Go</option>
+                    <option value="rust">Rust</option>
+                    <option value="php">PHP</option>
+                    <option value="ruby">Ruby</option>
+                    <option value="csharp">C#</option>
+                    <option value="kotlin">Kotlin</option>
+                    <option value="swift">Swift</option>
+                    <option value="dart">Dart</option>
+                    <option value="lua">Lua</option>
+                    <option value="perl">Perl</option>
+                    <option value="r">R</option>
+                    <option value="powershell">PowerShell</option>
+                    <option value="toml">TOML</option>
+                </select>
+                <button class="drive-button markdown-preview-toggle" id="markdown-preview-toggle" type="button" hidden><span class="material-symbols-outlined" aria-hidden="true">visibility</span>Preview Markdown</button>
+                <span class="editor-hint">Ctrl+S to save</span>
+            </div>
+            <div id="editor-surface" class="editor-surface" hidden>
+                <textarea id="item-content" class="dialog-input content-input" rows="12" spellcheck="false"></textarea>
+            </div>
+            <div id="markdown-preview" class="markdown-preview" hidden></div>
+            <div class="dialog-actions"><button class="drive-button" type="button" data-close-dialog>Cancel</button><button class="drive-button primary-button" id="save-item-button" type="submit">Create</button></div>
+        </form>
+    </dialog>
+
+    <dialog id="move-dialog" class="drive-dialog">
+        <form id="move-form" method="dialog">
+            <div class="dialog-header"><div><p class="dialog-kicker">MOVE ITEM</p><h2>Choose destination</h2></div><button class="icon-button dialog-close" type="button" data-close-dialog aria-label="Close"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></div>
+            <label class="dialog-label" for="destination-path">Destination folder path</label>
+            <input id="destination-path" class="dialog-input" type="text" placeholder="Leave blank for My Drive" autocomplete="off">
+            <p class="dialog-hint">Use a folder path such as <code>Photos/2025</code>.</p>
+            <div class="dialog-actions"><button class="drive-button" type="button" data-close-dialog>Cancel</button><button class="drive-button primary-button" type="submit">Move</button></div>
+        </form>
+    </dialog>
+
+    <dialog id="preview-dialog" class="drive-dialog preview-dialog">
+        <div class="dialog-header"><div><p class="dialog-kicker">FILE PREVIEW</p><h2 id="preview-title">Preview</h2></div><button class="icon-button dialog-close" type="button" data-close-dialog aria-label="Close"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></div>
+        <div id="preview-content" class="preview-content"></div>
+        <div class="dialog-actions"><button class="drive-button" id="preview-edit-button" type="button">Edit text</button><button class="drive-button primary-button" id="preview-download-button" type="button">Download</button></div>
+    </dialog>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/mode/loadmode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/meta.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/searchcursor.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/search.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.6/purify.min.js"></script>
+    <script src="/js/theme.js"></script>
+    <script src="/js/storage.js"></script>
+</body>
+</html>
