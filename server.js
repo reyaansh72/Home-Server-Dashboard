@@ -19,6 +19,7 @@ const port = Number(process.env.PORT) || 3000;
 const host = process.env.HOST || '0.0.0.0';
 const maxUploadBytes = 250 * 1024 * 1024;
 const apiToken = process.env.FILES_API_TOKEN || crypto.randomBytes(24).toString('hex');
+const configuredDaypart = ['morning', 'day', 'evening', 'night'].includes(process.env.BG_TIME) ? process.env.BG_TIME : null;
 const terminalTestMode = process.env.TEST_MODE === 'true';
 const defaultTerminalCommands = ['date', 'df', 'free', 'hostname', 'id', 'ls', 'pwd', 'uname', 'uptime', 'whoami'];
 let terminalAllowedCommands = new Set((process.env.TERMINAL_ALLOWED_COMMANDS === undefined
@@ -1478,7 +1479,9 @@ http.createServer(async (request, response) => {
 
     const url = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
     try {
-        if (url.pathname === '/api/stats' && request.method === 'GET') {
+        if (url.pathname === '/api/theme' && request.method === 'GET') {
+            sendJson(response, 200, { daypart: configuredDaypart });
+        } else if (url.pathname === '/api/stats' && request.method === 'GET') {
             sendJson(response, 200, getStats());
         } else if (url.pathname.startsWith('/api/files') || url.pathname.startsWith('/api/shorts') || url.pathname.startsWith('/api/repos') || url.pathname.startsWith('/api/minecraft') || url.pathname === '/api/terminal') {
             if (request.headers.authorization !== `Bearer ${apiToken}` && !isSameOriginDashboardRequest(request)) {
@@ -1508,5 +1511,6 @@ http.createServer(async (request, response) => {
 }).listen(port, host, () => {
     console.log(`Home Server Dashboard running at http://localhost:${port}`);
     console.log(`Storage API token: ${apiToken}`);
+    if (configuredDaypart) console.log(`Fixed background daypart: ${configuredDaypart}`);
     if (terminalTestMode) console.warn('WARNING: TEST_MODE=true disables the terminal executable allowlist. Any executable command can run with the server process permissions.');
 });

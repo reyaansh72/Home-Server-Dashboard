@@ -61,6 +61,8 @@ Why settle for one background when you can have four?
 
 The dashboard automatically switches backgrounds depending on your local time and even samples image colors to adapt the interface palette.
 
+To keep one background daypart fixed, start the Node server with `BG_TIME` set to `morning`, `day`, `evening`, or `night`, for example `BG_TIME=night npm start`. When `BG_TIME` is unset or invalid, the dashboard follows local time as usual. Static-only previews do not read this server setting.
+
 Place these images inside `public/assets/`:
 
 | Image | Time |

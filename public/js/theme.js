@@ -11,6 +11,8 @@
     };
     const mixColors = (first, second, amount) => first.map((channel, index) => channel * (1 - amount) + second[index] * amount);
     let activeDaypart = null;
+    let fixedDaypart = null;
+    let themeReady = false;
 
     const luminance = ([red, green, blue]) => (0.2126 * red) + (0.7152 * green) + (0.0722 * blue);
     const rgbValue = (color) => color.map((channel) => Math.round(channel)).join(' ');
@@ -106,8 +108,9 @@
     }
 
     function updateDaypart() {
+        if (!themeReady) return;
         const now = new Date();
-        const daypart = getDaypart(now);
+        const daypart = fixedDaypart || getDaypart(now);
         const label = document.getElementById('daypart-label');
         const icon = document.getElementById('daypart-icon');
         const clock = document.getElementById('daypart-clock');
@@ -135,13 +138,27 @@
         activeDaypart = null;
         updateDaypart();
     };
-    window.getDashboardDaypart = getDaypart;
+    window.getDashboardDaypart = (date) => fixedDaypart || getDaypart(date);
     window.addEventListener('dashboard-background-change', sampleBackground);
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', updateDaypart, { once: true });
-    } else {
+    async function initializeTheme() {
+        try {
+            const response = await fetch('/api/theme', { cache: 'no-store' });
+            if (response.ok) {
+                const settings = await response.json();
+                if (['morning', 'day', 'evening', 'night'].includes(settings.daypart)) fixedDaypart = settings.daypart;
+            }
+        } catch {
+            fixedDaypart = null;
+        }
+        themeReady = true;
         updateDaypart();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeTheme, { once: true });
+    } else {
+        initializeTheme();
     }
     window.setInterval(updateDaypart, 15000);
 })();
