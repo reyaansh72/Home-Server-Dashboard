@@ -14,6 +14,7 @@ Whether you're on a desktop, tablet, or phone, the interface adapts to your scre
 ### Fire it up!
 
 ```sh
+npm install
 npm start
 ```
 
@@ -52,11 +53,14 @@ A little tour of what's inside!
 | `/shorts.html` | **Shorts** — A vertically scrolling video feed with uploads, playback, likes, and comments. |
 | `/repos.html` | **Repositories** — Manage local Git repositories, edit code, view changes, commit, switch branches, push remotely, preview READMEs, and manage releases. |
 | `/minecraft.html` | **Minecraft** — Manage a Minecraft server with Java setup, file management, lifecycle controls, and its own dedicated console. |
+| `/games.html` | **Games** — A dashboard-matched arcade launcher for Flappy Bird, Pong, Rock Paper Scissors, Snake, Space Shooter, and Tic Tac Toe. Create a room and share its code to play with one other person over Socket.IO. |
 | `/terminal.html` | **Operations Terminal** — Run built-in checks for your host and managed services. |
 | `/weather.html` | **Weather** — Look up a city and view current conditions, hourly outlook, and a 7-day forecast from Open-Meteo. |
 | `/chat.html` | **Global Chat** — Shared server conversation with profiles, reactions, replies, pins, search, images, videos, files, voice notes, and file comments. |
 
 Chat usernames and avatars are saved per browser profile, while messages and uploaded attachments are shared in `data/chat/`. Chat has no account authentication, so expose it only to a trusted network; anyone who can reach the dashboard can post using a chosen username.
+
+Game rooms are temporary and stay in server memory. Each room accepts up to two connected players; share the six-character room code to invite someone. Tic Tac Toe and Rock Paper Scissors validate moves on the server, Pong runs from shared server state, and Flappy Bird, Snake, and Space Shooter compare each player's score after both runs finish. Room state is cleared when the server restarts. The static-only preview below does not include Socket.IO, so multiplayer games require the Node.js server.
 
 ## 🌄 A Dashboard That Follows the Sun
 
@@ -103,6 +107,7 @@ Here's where everything lives behind the scenes:
 | `data/repos/` | Local Git repositories |
 | `data/minecraft/server/` | Managed Minecraft server |
 | `data/minecraft/runtimes/` | Temurin Java runtimes |
+| `data/chat/` | Shared chat messages and uploads |
 
 These directories are created when needed and aren't served as public static files.
 
@@ -168,7 +173,7 @@ FILES_API_TOKEN=your-token npm start
 
 For a browser app running on another origin, set `CORS_ORIGIN` to that exact origin.
 
-For all the technical details, check out **[API.md](API.md)**. It covers file, Shorts, Repos, Minecraft, and Operations Terminal API routes, payload formats, limits, and examples.
+For all the technical details, check out **[API.md](API.md)**. It covers file, Shorts, Repos, Minecraft, and Operations Terminal API routes, payload formats, limits, and examples. Games use Socket.IO rooms rather than HTTP API routes.
 
 ## 📁 Project Structure
 
@@ -182,11 +187,12 @@ For all the technical details, check out **[API.md](API.md)**. It covers file, S
     |-- assets/           Backgrounds and icons
     |-- css/              Shared and page-specific styles
     |-- js/               Dashboard, Storage, Shorts, Repos,
-    |                      Minecraft, Terminal, and theme logic
+    |                      Minecraft, Games, Terminal, and theme logic
     |-- index.html
     |-- storage.html
     |-- repos.html
     |-- minecraft.html
+    |-- games.html
     |-- terminal.html
     `-- shorts.html
 ```
