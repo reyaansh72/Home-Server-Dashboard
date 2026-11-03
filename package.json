@@ -8,5 +8,8 @@
   },
   "engines": {
     "node": ">=18.15"
+  },
+  "dependencies": {
+    "socket.io": "^4.8.4"
   }
 }

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#323233">
+    <title>Games | Home Server</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/games.css">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-top"><a href="/" aria-label="Server overview"><img src="/assets/favicon.svg" class="logo" alt="Logo"></a></div>
+        <nav class="sidebar-nav" aria-label="Main navigation">
+            <a class="sidebar-link" href="/" aria-label="Server overview" title="Server overview"><span class="material-symbols-outlined" aria-hidden="true">dashboard</span></a>
+            <a class="sidebar-link" href="/storage.html" aria-label="Storage" title="Storage"><span class="material-symbols-outlined" aria-hidden="true">folder_open</span></a>
+            <a class="sidebar-link" href="/shorts.html" aria-label="Shorts" title="Shorts"><span class="material-symbols-outlined" aria-hidden="true">smart_display</span></a>
+            <a class="sidebar-link" href="/repos.html" aria-label="Repositories" title="Repositories"><span class="material-symbols-outlined" aria-hidden="true">source</span></a>
+            <a class="sidebar-link" href="/minecraft.html" aria-label="Minecraft server" title="Minecraft server"><span class="material-symbols-outlined" aria-hidden="true">stadia_controller</span></a>
+            <a class="sidebar-link active" href="/games.html" aria-label="Games" title="Games"><span class="material-symbols-outlined" aria-hidden="true">sports_esports</span></a>
+            <a class="sidebar-link" href="/terminal.html" aria-label="Operations terminal" title="Operations terminal"><span class="material-symbols-outlined" aria-hidden="true">terminal</span></a>
+            <a class="sidebar-link" href="/weather.html" aria-label="Weather" title="Weather"><span class="material-symbols-outlined" aria-hidden="true">partly_cloudy_day</span></a>
+            <a class="sidebar-link" href="/chat.html" aria-label="Global chat" title="Global chat"><span class="material-symbols-outlined" aria-hidden="true">forum</span></a>
+        </nav>
+    </aside>
+    <main class="main games-main">
+        <header class="topbar">
+            <div class="daypart-indicator" aria-label="Current time of day"><span id="daypart-icon" class="material-symbols-outlined" aria-hidden="true">light_mode</span><span id="daypart-label">Loading</span><time id="daypart-clock"></time></div>
+            <div class="connection"><span class="status-dot"></span><span id="connection-label">Connecting</span></div>
+        </header>
+        <section class="games-heading" aria-labelledby="page-title">
+            <div class="games-title"><span class="games-title-icon material-symbols-outlined" aria-hidden="true">sports_esports</span><div><p class="eyebrow">HOME SERVER ARCADE</p><h1 id="page-title">Games</h1><p class="games-subtitle">Pick a game, open a room, bring a friend.</p></div></div>
+            <div class="games-online"><span class="online-light"></span><span id="online-count">0</span> PLAYERS ONLINE</div>
+        </section>
+        <div class="games-layout">
+            <section class="library-section" aria-labelledby="library-title">
+                <div class="section-heading"><div><p class="section-kicker">THE ARCADE</p><h2 id="library-title">Choose your game</h2></div><span class="game-count">06 GAMES</span></div>
+                <div class="game-library" id="game-library">
+                    <article class="game-tile" data-tile="flappy"><div class="game-art flappy-art"><span class="material-symbols-outlined" aria-hidden="true">flutter_dash</span><i></i><b></b></div><div class="tile-copy"><span class="tile-tag">ARCADE · 2 PLAYERS</span><h3>Flappy Bird</h3><p>Who can stay airborne the longest?</p></div><button class="tile-play" type="button" data-select-game="flappy" aria-label="Select Flappy Bird"><span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span></button></article>
+                    <article class="game-tile" data-tile="pong"><div class="game-art pong-art"><span></span><i></i><b></b></div><div class="tile-copy"><span class="tile-tag">HEAD TO HEAD · 2 PLAYERS</span><h3>Pong</h3><p>First to five points takes the match.</p></div><button class="tile-play" type="button" data-select-game="pong" aria-label="Select Pong"><span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span></button></article>
+                    <article class="game-tile" data-tile="rps"><div class="game-art rps-art"><span class="material-symbols-outlined" aria-hidden="true">back_hand</span><i class="material-symbols-outlined">front_hand</i></div><div class="tile-copy"><span class="tile-tag">QUICK MATCH · 2 PLAYERS</span><h3>Rock Paper Scissors</h3><p>Best of five. No grudges. Probably.</p></div><button class="tile-play" type="button" data-select-game="rps" aria-label="Select Rock Paper Scissors"><span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span></button></article>
+                    <article class="game-tile" data-tile="snake"><div class="game-art snake-art"><span></span><i></i><b></b></div><div class="tile-copy"><span class="tile-tag">ARCADE · 2 PLAYERS</span><h3>Snake</h3><p>Eat, grow, and outlast your rival.</p></div><button class="tile-play" type="button" data-select-game="snake" aria-label="Select Snake"><span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span></button></article>
+                    <article class="game-tile" data-tile="shooter"><div class="game-art shooter-art"><span class="material-symbols-outlined" aria-hidden="true">rocket_launch</span><i></i><b></b></div><div class="tile-copy"><span class="tile-tag">ARCADE · 2 PLAYERS</span><h3>Space Shooter</h3><p>Clear the wave and chase the high score.</p></div><button class="tile-play" type="button" data-select-game="shooter" aria-label="Select Space Shooter"><span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span></button></article>
+                    <article class="game-tile" data-tile="tictactoe"><div class="game-art ttt-art"><span>X</span><i>O</i><b>X</b><em>O</em></div><div class="tile-copy"><span class="tile-tag">HEAD TO HEAD · 2 PLAYERS</span><h3>Tic Tac Toe</h3><p>Three in a row. Simple as that.</p></div><button class="tile-play" type="button" data-select-game="tictactoe" aria-label="Select Tic Tac Toe"><span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span></button></article>
+                </div>
+            </section>
+            <aside class="room-column">
+                <section class="room-panel" aria-labelledby="room-title">
+                    <div class="room-panel-heading"><span class="material-symbols-outlined" aria-hidden="true">meeting_room</span><div><p class="section-kicker">PLAY TOGETHER</p><h2 id="room-title">Game room</h2></div></div>
+                    <label class="field-label" for="player-name">YOUR NAME</label>
+                    <input id="player-name" class="room-input" maxlength="20" autocomplete="nickname" placeholder="Choose a name" value="Player">
+                    <div class="selected-game" id="selected-game"><span class="material-symbols-outlined" aria-hidden="true">touch_app</span><span>Choose a game to get started</span></div>
+                    <button id="create-room" class="room-button primary-button" type="button" disabled><span class="material-symbols-outlined" aria-hidden="true">add</span>Create room</button>
+                    <div class="room-divider"><span>OR JOIN A FRIEND</span></div>
+                    <label class="field-label" for="room-code-input">ROOM CODE</label>
+                    <div class="join-row"><input id="room-code-input" class="room-input code-input" maxlength="6" autocomplete="off" placeholder="6-digit code"><button id="join-room" class="room-button" type="button"><span class="material-symbols-outlined" aria-hidden="true">login</span>Join</button></div>
+                    <p class="room-message" id="room-message" role="status" aria-live="polite">Select a game, then create a room.</p>
+                </section>
+                <section class="players-panel" id="players-panel" aria-label="Room players" hidden>
+                    <div class="players-heading"><span>IN THIS ROOM</span><span id="room-code-label"></span></div>
+                    <div class="player-slots" id="player-slots"></div>
+                    <button id="copy-room" class="copy-room" type="button"><span class="material-symbols-outlined" aria-hidden="true">content_copy</span>Copy invite code</button>
+                    <button id="leave-room" class="leave-room" type="button">Leave room</button>
+                </section>
+                <section class="game-board-panel" id="game-board-panel" hidden>
+                    <div class="board-heading"><div><p class="section-kicker">NOW PLAYING</p><h2 id="active-game-title"></h2></div><button id="restart-game" class="icon-button" type="button" title="Play again" aria-label="Play again"><span class="material-symbols-outlined" aria-hidden="true">restart_alt</span></button></div>
+                    <p class="match-status" id="match-status" aria-live="polite">Waiting for another player...</p>
+                    <div id="game-surface" class="game-surface"></div>
+                </section>
+            </aside>
+        </div>
+        <footer class="page-footer"><span>HOME SERVER ARCADE</span><span>Private rooms · Up to two players</span></footer>
+    </main>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/theme.js?v=daypart-background"></script>
+    <script src="/js/games.js"></script>
+</body>
+</html>

@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const crypto = require('node:crypto');
 const https = require('node:https');
 const { pipeline } = require('node:stream/promises');
+const { Server } = require('socket.io');
 
 const publicDirectory = path.join(__dirname, 'public');
 const storageDirectory = path.join(__dirname, 'data', 'files');
@@ -1737,7 +1738,7 @@ async function handleChatApi(request, response, url) {
     sendJson(response, 404, { error: 'Chat endpoint not found' });
 }
 
-http.createServer(async (request, response) => {
+const server = http.createServer(async (request, response) => {
     const origin = process.env.CORS_ORIGIN || `http://localhost:${port}`;
     response.setHeader('Access-Control-Allow-Origin', origin);
     response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -1780,7 +1781,225 @@ http.createServer(async (request, response) => {
             error: error.code === 'ENOENT' ? 'File or folder not found' : error.code === 'EEXIST' ? 'An item with that name already exists' : error.message
         });
     }
-}).listen(port, host, () => {
+});
+
+const io = new Server(server);
+const gameRooms = new Map();
+const availableGames = new Set(['flappy', 'pong', 'rps', 'snake', 'shooter', 'tictactoe']);
+
+function newGameState(game) {
+    if (game === 'tictactoe') return { board: Array(9).fill(null), turn: 0, winner: null, draw: false };
+    if (game === 'rps') return { round: 1, wins: [0, 0], choices: [null, null], result: null, winner: null };
+    if (game === 'pong') return { ball: { x: 0.5, y: 0.5, vx: 0.36, vy: 0.19 }, paddles: [0.5, 0.5], scores: [0, 0], winner: null };
+    return { scores: [0, 0], finished: [false, false], winner: null };
+}
+
+function roomSnapshot(room) {
+    const state = room.game === 'rps' && !room.state.choices.every(Boolean)
+        ? { ...room.state, choices: room.state.choices.map(() => null), picked: room.state.choices.map(Boolean) }
+        : room.state;
+    return {
+        code: room.code,
+        game: room.game,
+        players: room.players.map(({ name, id }) => ({ name, id })),
+        started: room.players.length === 2,
+        revision: room.revision,
+        state
+    };
+}
+
+function emitRoom(room) {
+    io.to(room.code).emit('room:state', roomSnapshot(room));
+}
+
+function roomForSocket(socket) {
+    const room = gameRooms.get(socket.data.gameRoom);
+    if (!room || !room.players.some((player) => player.id === socket.id)) return null;
+    return room;
+}
+
+function finishTicTacToe(state) {
+    const winningLines = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
+    const line = winningLines.find(([first, second, third]) => state.board[first] && state.board[first] === state.board[second] && state.board[first] === state.board[third]);
+    if (line) state.winner = state.board[line[0]];
+    else if (state.board.every(Boolean)) state.draw = true;
+}
+
+function removeGamePlayer(socket) {
+    const room = roomForSocket(socket);
+    if (!room) return;
+    room.players = room.players.filter((player) => player.id !== socket.id);
+    socket.leave(room.code);
+    socket.data.gameRoom = null;
+    if (room.players.length === 0) {
+        gameRooms.delete(room.code);
+        return;
+    }
+    room.state = newGameState(room.game);
+    emitRoom(room);
+}
+
+io.on('connection', (socket) => {
+    io.emit('arcade:online', io.engine.clientsCount);
+
+    socket.on('game:create', (payload = {}, reply = () => {}) => {
+        if (roomForSocket(socket)) return reply({ error: 'Leave your current room first.' });
+        if (!availableGames.has(payload.game)) return reply({ error: 'Choose a valid game.' });
+        const name = typeof payload.name === 'string' ? payload.name.trim().slice(0, 20) : '';
+        if (!name) return reply({ error: 'Enter your name first.' });
+        let code;
+        do { code = crypto.randomBytes(3).toString('hex').toUpperCase(); } while (gameRooms.has(code));
+        const room = { code, game: payload.game, players: [{ id: socket.id, name }], revision: 0, state: newGameState(payload.game) };
+        gameRooms.set(code, room);
+        socket.data.gameRoom = code;
+        socket.join(code);
+        emitRoom(room);
+        reply({ room: roomSnapshot(room) });
+    });
+
+    socket.on('game:join', (payload = {}, reply = () => {}) => {
+        if (roomForSocket(socket)) return reply({ error: 'Leave your current room first.' });
+        const code = typeof payload.code === 'string' ? payload.code.trim().toUpperCase() : '';
+        const room = gameRooms.get(code);
+        if (!room) return reply({ error: 'Room not found. Check the code and try again.' });
+        if (room.players.length >= 2) return reply({ error: 'That room is already full.' });
+        const name = typeof payload.name === 'string' ? payload.name.trim().slice(0, 20) : '';
+        if (!name) return reply({ error: 'Enter your name first.' });
+        room.players.push({ id: socket.id, name });
+        socket.data.gameRoom = code;
+        socket.join(code);
+        emitRoom(room);
+        reply({ room: roomSnapshot(room) });
+    });
+
+    socket.on('game:leave', (_payload = {}, reply = () => {}) => {
+        removeGamePlayer(socket);
+        reply({ ok: true });
+    });
+
+    socket.on('game:restart', (_payload = {}, reply = () => {}) => {
+        const room = roomForSocket(socket);
+        if (!room) return reply({ error: 'Join a room first.' });
+        if (room.players.length !== 2) return reply({ error: 'Waiting for another player.' });
+        room.revision += 1;
+        room.state = newGameState(room.game);
+        emitRoom(room);
+        reply({ ok: true });
+    });
+
+    socket.on('game:ttt-move', (payload = {}, reply = () => {}) => {
+        const room = roomForSocket(socket);
+        if (!room || room.game !== 'tictactoe' || room.players.length !== 2) return reply({ error: 'This match is not ready.' });
+        const playerIndex = room.players.findIndex((player) => player.id === socket.id);
+        const { state } = room;
+        if (!Number.isInteger(payload.index) || payload.index < 0 || payload.index > 8 || state.winner || state.draw || state.turn !== playerIndex || state.board[payload.index]) {
+            return reply({ error: 'That move is not available.' });
+        }
+        state.board[payload.index] = playerIndex === 0 ? 'X' : 'O';
+        finishTicTacToe(state);
+        if (!state.winner && !state.draw) state.turn = 1 - playerIndex;
+        emitRoom(room);
+        reply({ ok: true });
+    });
+
+    socket.on('game:rps-choice', (payload = {}, reply = () => {}) => {
+        const room = roomForSocket(socket);
+        if (!room || room.game !== 'rps' || room.players.length !== 2) return reply({ error: 'This match is not ready.' });
+        if (!['rock', 'paper', 'scissors'].includes(payload.choice)) return reply({ error: 'Choose rock, paper, or scissors.' });
+        const playerIndex = room.players.findIndex((player) => player.id === socket.id);
+        const { state } = room;
+        if (state.winner || state.choices[playerIndex]) return reply({ error: 'Wait for the next round.' });
+        state.choices[playerIndex] = payload.choice;
+        if (state.choices.every(Boolean)) {
+            const [first, second] = state.choices;
+            if (first !== second) {
+                const firstWins = (first === 'rock' && second === 'scissors') || (first === 'paper' && second === 'rock') || (first === 'scissors' && second === 'paper');
+                state.wins[firstWins ? 0 : 1] += 1;
+            }
+            state.result = state.wins[0] === state.wins[1] ? 'Draw round' : `${room.players[state.wins[0] > state.wins[1] ? 0 : 1].name} takes the round`;
+            if (state.wins.some((wins) => wins === 3)) state.winner = state.wins[0] > state.wins[1] ? 0 : 1;
+            else state.round += 1;
+        }
+        emitRoom(room);
+        if (state.choices.every(Boolean) && state.winner === null) {
+            const completedRound = state.round;
+            setTimeout(() => {
+                if (gameRooms.get(room.code) !== room || room.state !== state || state.winner !== null || state.round !== completedRound) return;
+                state.choices = [null, null];
+                state.result = null;
+                emitRoom(room);
+            }, 1400).unref();
+        }
+        reply({ ok: true });
+    });
+
+    socket.on('game:arcade-score', (payload = {}) => {
+        const room = roomForSocket(socket);
+        if (!room || room.players.length !== 2 || !['flappy', 'snake', 'shooter'].includes(room.game)) return;
+        if (!Number.isInteger(payload.score) || payload.score < 0 || payload.score > 100000) return;
+        const playerIndex = room.players.findIndex((player) => player.id === socket.id);
+        if (room.state.finished[playerIndex] || room.state.winner !== null) return;
+        room.state.scores[playerIndex] = Math.max(room.state.scores[playerIndex], payload.score);
+        emitRoom(room);
+    });
+
+    socket.on('game:arcade-finish', () => {
+        const room = roomForSocket(socket);
+        if (!room || room.players.length !== 2 || !['flappy', 'snake', 'shooter'].includes(room.game)) return;
+        const playerIndex = room.players.findIndex((player) => player.id === socket.id);
+        room.state.finished[playerIndex] = true;
+        if (room.state.finished.every(Boolean)) {
+            room.state.winner = room.state.scores[0] === room.state.scores[1] ? -1 : room.state.scores[0] > room.state.scores[1] ? 0 : 1;
+        }
+        emitRoom(room);
+    });
+
+    socket.on('game:pong-paddle', (payload = {}) => {
+        const room = roomForSocket(socket);
+        if (!room || room.game !== 'pong' || room.players.length !== 2 || room.state.winner) return;
+        if (typeof payload.y !== 'number' || !Number.isFinite(payload.y)) return;
+        const playerIndex = room.players.findIndex((player) => player.id === socket.id);
+        room.state.paddles[playerIndex] = Math.max(0.1, Math.min(0.9, payload.y));
+    });
+
+    socket.on('disconnect', () => {
+        removeGamePlayer(socket);
+        io.emit('arcade:online', io.engine.clientsCount);
+    });
+});
+
+setInterval(() => {
+    const delta = 1 / 30;
+    for (const room of gameRooms.values()) {
+        if (room.game !== 'pong' || room.players.length !== 2 || room.state.winner) continue;
+        const state = room.state;
+        const ball = state.ball;
+        ball.x += ball.vx * delta;
+        ball.y += ball.vy * delta;
+        if (ball.y < 0.02 || ball.y > 0.98) ball.vy *= -1;
+        if (ball.x < 0.075 && Math.abs(ball.y - state.paddles[0]) < 0.13) {
+            ball.x = 0.075;
+            ball.vx = Math.abs(ball.vx) * 1.035;
+            ball.vy += (ball.y - state.paddles[0]) * 0.65;
+        } else if (ball.x > 0.925 && Math.abs(ball.y - state.paddles[1]) < 0.13) {
+            ball.x = 0.925;
+            ball.vx = -Math.abs(ball.vx) * 1.035;
+            ball.vy += (ball.y - state.paddles[1]) * 0.65;
+        } else if (ball.x < 0 || ball.x > 1) {
+            const scorer = ball.x < 0 ? 1 : 0;
+            state.scores[scorer] += 1;
+            if (state.scores[scorer] >= 5) state.winner = scorer;
+            ball.x = 0.5;
+            ball.y = 0.5;
+            ball.vx = (scorer === 0 ? -1 : 1) * 0.36;
+            ball.vy = Math.random() > 0.5 ? 0.19 : -0.19;
+        }
+        ball.vy = Math.max(-0.7, Math.min(0.7, ball.vy));
+        emitRoom(room);
+    }
+}, 1000 / 30).unref();
+
+server.listen(port, host, () => {
     console.log(`Home Server Dashboard running at http://localhost:${port}`);
     console.log(`Storage API token: ${apiToken}`);
     if (configuredDaypart) console.log(`Fixed background daypart: ${configuredDaypart}`);

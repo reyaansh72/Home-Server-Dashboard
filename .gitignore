@@ -1,2 +1,4 @@
 web-mig.md
 data/
+node_modules/
+package-lock.json
