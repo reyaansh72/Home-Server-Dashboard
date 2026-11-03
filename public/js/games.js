@@ -50,7 +50,7 @@
     }
 
     function playerName() {
-        const name = elements.name.value.trim().slice(0, 20);
+        const name = window.dashboardAccount?.username || '';
         if (!name) {
             elements.name.focus();
             setMessage('Enter your name to continue.', 'error');
@@ -76,7 +76,7 @@
         const name = playerName();
         if (!name || !selectedGame) return;
         elements.create.disabled = true;
-        const result = await send('game:create', { game: selectedGame, name });
+        const result = await send('game:create', { game: selectedGame, userId: window.dashboardAccount.userId });
         if (result.error) {
             elements.create.disabled = false;
             setMessage(result.error, 'error');
@@ -95,11 +95,16 @@
             return;
         }
         elements.join.disabled = true;
-        const result = await send('game:join', { code, name });
+        const result = await send('game:join', { code, userId: window.dashboardAccount.userId });
         elements.join.disabled = false;
         if (result.error) setMessage(result.error, 'error');
         else setMessage(`Joined ${gameNames[result.room.game]}. Good luck.`, 'success');
     });
+
+    window.dashboardAccountReady.then((account) => {
+        elements.name.value = account.username;
+        elements.name.title = `Playing as ${account.username}`;
+    }).catch((error) => setMessage(error.message, 'error'));
 
     elements.roomCode.addEventListener('input', () => {
         elements.roomCode.value = elements.roomCode.value.replace(/[^a-f0-9]/gi, '').slice(0, 6).toUpperCase();
@@ -156,11 +161,19 @@
             const player = room.players[index];
             const slot = document.createElement('div');
             slot.className = `player-slot${player ? '' : ' empty'}`;
-            const dot = document.createElement('span');
-            dot.className = 'slot-dot';
+            let avatar;
+            if (player?.avatarId) {
+                avatar = document.createElement('img');
+                avatar.src = `/api/chat/files/${encodeURIComponent(player.avatarId)}/content`;
+                avatar.alt = '';
+            } else {
+                avatar = document.createElement('span');
+                avatar.className = 'slot-dot';
+                if (player) avatar.textContent = player.name.charAt(0).toUpperCase();
+            }
             const label = document.createElement('span');
             label.textContent = player ? `${player.name}${index === 0 ? ' · HOST' : ''}` : 'Waiting for player...';
-            slot.append(dot, label);
+            slot.append(avatar, label);
             elements.players.append(slot);
         }
     }

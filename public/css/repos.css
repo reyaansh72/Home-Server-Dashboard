@@ -21,7 +21,12 @@
 .repo-list-item { display: flex; min-width: 0; align-items: center; gap: 9px; padding: 9px 8px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: #eee; font: inherit; text-align: left; cursor: pointer; transition: background .15s ease, border-color .15s ease; }
 .repo-list-item:hover, .repo-list-item.active { border-color: rgba(255, 255, 255, .18); background: rgba(255, 255, 255, .1); }
 .repo-list-item .material-symbols-outlined { color: rgb(var(--theme-accent-rgb)); font-size: 18px; }
-.repo-list-item span:last-child { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.repo-list-avatar { display: grid; width: 28px; height: 28px; flex: 0 0 auto; place-items: center; overflow: hidden; border-radius: 50%; background: #527568; color: white; font-size: 10px; font-weight: 700; object-fit: cover; }
+.repo-list-initial { border: 1px solid rgba(255, 255, 255, .18); }
+.repo-list-item .repo-list-copy { display: grid; min-width: 0; gap: 3px; }
+.repo-list-copy strong, .repo-list-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.repo-list-copy strong { color: #eee; font-size: 10px; font-weight: 600; }
+.repo-list-copy small { color: #c1c8c3; font-size: 8px; }
 .repo-list-empty { margin: 15px 7px; color: #ccc; font-size: 10px; line-height: 1.5; }
 .repo-detail { position: relative; display: flex; min-height: 520px; flex-direction: column; overflow: hidden; }
 .repo-welcome { display: grid; flex: 1; align-content: center; justify-items: center; gap: 10px; padding: 30px; text-align: center; }

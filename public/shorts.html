@@ -20,6 +20,7 @@
             <a class="sidebar-link" href="/" aria-label="Server overview" title="Server overview"><span class="material-symbols-outlined" aria-hidden="true">dashboard</span></a>
             <a class="sidebar-link" href="/storage.html" aria-label="Storage" title="Storage"><span class="material-symbols-outlined" aria-hidden="true">folder_open</span></a>
             <a class="sidebar-link active" href="/shorts.html" aria-label="Shorts" title="Shorts"><span class="material-symbols-outlined" aria-hidden="true">smart_display</span></a>
+            <a class="sidebar-link" href="/music.html" aria-label="Music" title="Music"><span class="material-symbols-outlined" aria-hidden="true">library_music</span></a>
             <a class="sidebar-link" href="/repos.html" aria-label="Repositories" title="Repositories"><span class="material-symbols-outlined" aria-hidden="true">source</span></a>
             <a class="sidebar-link" href="/minecraft.html" aria-label="Minecraft server" title="Minecraft server"><span class="material-symbols-outlined" aria-hidden="true">stadia_controller</span></a>
             <a class="sidebar-link" href="/games.html" aria-label="Games" title="Games"><span class="material-symbols-outlined" aria-hidden="true">sports_esports</span></a>
@@ -76,8 +77,8 @@
         <div class="dialog-header"><div><p class="dialog-kicker">THE CONVERSATION</p><h2 id="comments-title">Comments</h2></div><button class="icon-button dialog-close" type="button" data-close-short-dialog aria-label="Close"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></div>
         <div id="short-comments-list" class="short-comments-list"></div>
         <form id="short-comment-form" class="short-comment-form">
-            <label class="dialog-label" for="comment-name">Your name</label>
-            <input id="comment-name" class="dialog-input" type="text" maxlength="32" autocomplete="name" placeholder="Viewer">
+            <label class="dialog-label">Commenting as</label>
+            <div id="short-comment-identity" class="short-comment-identity"></div>
             <label class="dialog-label" for="comment-text">Add a comment</label>
             <textarea id="comment-text" class="dialog-input short-caption-input" maxlength="500" rows="3" required placeholder="Write a comment..."></textarea>
             <div class="dialog-actions"><button class="drive-button primary-button" type="submit"><span class="material-symbols-outlined" aria-hidden="true">send</span>Comment</button></div>
@@ -85,6 +86,7 @@
     </dialog>
 
     <script src="/js/theme.js"></script>
+    <script src="/js/account.js"></script>
     <script src="/js/shorts.js"></script>
 </body>
 </html>

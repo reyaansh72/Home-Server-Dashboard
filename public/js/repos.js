@@ -78,7 +78,7 @@ function loadModeForFile(filePath) {
 function updateActiveRepoList() {
     const filter = document.getElementById('repo-search-input').value.trim().toLowerCase();
     const visible = repositories.filter((repo) => repo.name.toLowerCase().includes(filter));
-    repoList.innerHTML = visible.map((repo) => `<button class="repo-list-item ${repo.name === activeRepository ? 'active' : ''}" type="button" data-repo-name="${escapeHtml(repo.name)}"><span class="material-symbols-outlined" aria-hidden="true">book</span><span>${escapeHtml(repo.name)}</span></button>`).join('');
+    repoList.innerHTML = visible.map((repo) => `<button class="repo-list-item ${repo.name === activeRepository ? 'active' : ''}" type="button" data-repo-name="${escapeHtml(repo.name)}">${repo.owner?.avatarId ? `<img class="repo-list-avatar" src="/api/chat/files/${encodeURIComponent(repo.owner.avatarId)}/content" alt="">` : `<span class="repo-list-avatar repo-list-initial">${escapeHtml(repo.owner?.username?.charAt(0).toUpperCase() || '?')}</span>`}<span class="repo-list-copy"><strong>${escapeHtml(repo.name)}</strong><small>${escapeHtml(repo.owner?.username || 'Owner unknown')}</small></span></button>`).join('');
     document.getElementById('repo-list-empty').hidden = visible.length > 0;
     document.getElementById('repo-count').textContent = `${repositories.length} repo${repositories.length === 1 ? '' : 's'}`;
 }
@@ -108,6 +108,9 @@ async function selectRepository(name) {
     document.getElementById('repo-welcome').hidden = true;
     document.getElementById('repo-content').hidden = false;
     document.getElementById('active-repo-name').textContent = name;
+    const repository = repositories.find((entry) => entry.name === name);
+    const ownerLabel = document.querySelector('.repo-owner-label');
+    ownerLabel.textContent = repository?.owner?.username ? `CREATED BY ${repository.owner.username}` : 'OWNER UNKNOWN';
     updateActiveRepoList();
     if (codeEditor) codeEditor.setValue('');
     document.getElementById('open-file-path').textContent = 'Select a file';
@@ -291,7 +294,8 @@ async function createRepository(event) {
     const name = document.getElementById('repo-name-input').value.trim();
     const description = document.getElementById('repo-description-input').value.trim();
     try {
-        await apiRequest('/api/repos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, description }) });
+        const account = await window.dashboardAccountReady;
+        await apiRequest('/api/repos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, description, userId: account.userId }) });
         repoDialog.close();
         document.getElementById('repo-form').reset();
         await loadRepositories();
@@ -457,4 +461,4 @@ function bindRepoUi() {
 
 bindRepoUi();
 createEditor();
-loadRepositories();
+window.dashboardAccountReady.then(() => loadRepositories()).catch((error) => showRepoStatus(error.message, true));

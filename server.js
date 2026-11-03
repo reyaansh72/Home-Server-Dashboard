@@ -10,12 +10,15 @@ const { Server } = require('socket.io');
 const publicDirectory = path.join(__dirname, 'public');
 const storageDirectory = path.join(__dirname, 'data', 'files');
 const repositoriesDirectory = path.join(__dirname, 'data', 'repos');
+const repositoriesMetadataPath = path.join(__dirname, 'data', 'repos.json');
 const minecraftDirectory = path.join(__dirname, 'data', 'minecraft');
 const minecraftServerDirectory = path.join(minecraftDirectory, 'server');
 const minecraftRuntimesDirectory = path.join(minecraftDirectory, 'runtimes');
 const minecraftMetadataPath = path.join(minecraftDirectory, 'manager.json');
 const shortsDirectory = path.join(storageDirectory, 'Shorts');
 const shortsMetadataPath = path.join(__dirname, 'data', 'shorts.json');
+const musicDirectory = path.join(__dirname, 'data', 'music');
+const musicMetadataPath = path.join(musicDirectory, 'music.json');
 const chatDirectory = path.join(__dirname, 'data', 'chat');
 const chatUploadsDirectory = path.join(chatDirectory, 'uploads');
 const chatMetadataPath = path.join(chatDirectory, 'chat.json');
@@ -35,6 +38,7 @@ fs.mkdirSync(shortsDirectory, { recursive: true });
 fs.mkdirSync(repositoriesDirectory, { recursive: true });
 fs.mkdirSync(minecraftDirectory, { recursive: true });
 fs.mkdirSync(minecraftRuntimesDirectory, { recursive: true });
+fs.mkdirSync(musicDirectory, { recursive: true });
 fs.mkdirSync(chatUploadsDirectory, { recursive: true });
 let previousCpu = readCpuTimes();
 let cpuUsage = 0;
@@ -97,12 +101,13 @@ function sendJson(response, statusCode, data) {
 }
 
 function isSameOriginDashboardRequest(request) {
+    if (request.headers['sec-fetch-site'] === 'same-origin') return true;
     const requestHost = request.headers.host;
     const referrer = request.headers.referer;
     if (!requestHost || !referrer) return false;
     try {
         const source = new URL(referrer);
-        return source.host === requestHost && ['/storage.html', '/shorts.html', '/repos.html', '/minecraft.html', '/terminal.html', '/chat.html'].includes(source.pathname);
+        return source.host === requestHost && ['/', '/index.html', '/storage.html', '/shorts.html', '/repos.html', '/minecraft.html', '/games.html', '/music.html', '/terminal.html', '/weather.html', '/chat.html'].includes(source.pathname);
     } catch {
         return false;
     }
@@ -862,13 +867,28 @@ function parseGitStatus(output) {
     };
 }
 
+function loadRepositoryMetadata() {
+    try {
+        const data = JSON.parse(fs.readFileSync(repositoriesMetadataPath, 'utf8'));
+        return data && typeof data === 'object' ? data : {};
+    } catch (error) {
+        if (error.code !== 'ENOENT') console.error('Unable to read repository metadata:', error.message);
+        return {};
+    }
+}
+
+function saveRepositoryMetadata(metadata) {
+    fs.writeFileSync(repositoriesMetadataPath, JSON.stringify(metadata, null, 2));
+}
+
 async function handleRepositoryApi(request, response, url) {
     const route = url.pathname.slice('/api/repos'.length).split('/').filter(Boolean).map(decodeURIComponent);
 
     if (request.method === 'GET' && route.length === 0) {
+        const metadata = loadRepositoryMetadata();
         const repositories = fs.readdirSync(repositoriesDirectory, { withFileTypes: true })
             .filter((entry) => entry.isDirectory() && !entry.isSymbolicLink() && fs.existsSync(path.join(repositoriesDirectory, entry.name, '.git')))
-            .map((entry) => ({ name: entry.name, updatedAt: fs.statSync(path.join(repositoriesDirectory, entry.name)).mtime.toISOString() }))
+            .map((entry) => ({ name: entry.name, updatedAt: fs.statSync(path.join(repositoriesDirectory, entry.name)).mtime.toISOString(), owner: metadata[entry.name]?.owner || null }))
             .sort((left, right) => left.name.localeCompare(right.name));
         sendJson(response, 200, { repositories });
         return;
@@ -876,6 +896,8 @@ async function handleRepositoryApi(request, response, url) {
 
     if (request.method === 'POST' && route.length === 0) {
         const body = await readJsonBody(request);
+        const userId = validChatUserId(body.userId);
+        const profile = getChatProfile(loadChatStore(), userId);
         const name = safeRepositoryName(body.name);
         const repoPath = repositoryPath(name);
         if (fs.existsSync(repoPath)) throw Object.assign(new Error('A repository with that name already exists'), { statusCode: 409 });
@@ -884,6 +906,9 @@ async function handleRepositoryApi(request, response, url) {
             await runGit(repoPath, ['init', '--initial-branch=main']);
             const readme = `# ${name}\n\n${typeof body.description === 'string' ? body.description.trim().slice(0, 500) : ''}\n`;
             fs.writeFileSync(path.join(repoPath, 'README.md'), readme, { flag: 'wx' });
+            const metadata = loadRepositoryMetadata();
+            metadata[name] = { owner: { userId, username: profile.username, avatarId: profile.avatarId }, createdAt: new Date().toISOString() };
+            saveRepositoryMetadata(metadata);
         } catch (error) {
             fs.rmSync(repoPath, { recursive: true, force: true });
             throw error;
@@ -1298,6 +1323,175 @@ function saveShortsStore(store) {
     fs.writeFileSync(shortsMetadataPath, JSON.stringify(store, null, 2));
 }
 
+const musicTypes = {
+    '.aac': 'audio/aac',
+    '.flac': 'audio/flac',
+    '.m4a': 'audio/mp4',
+    '.mp3': 'audio/mpeg',
+    '.oga': 'audio/ogg',
+    '.ogg': 'audio/ogg',
+    '.opus': 'audio/ogg',
+    '.wav': 'audio/wav'
+};
+const maxMusicBytes = 250 * 1024 * 1024;
+
+function loadMusicStore() {
+    try {
+        const data = JSON.parse(fs.readFileSync(musicMetadataPath, 'utf8'));
+        return data && data.tracks && typeof data.tracks === 'object' ? data : { tracks: {} };
+    } catch (error) {
+        if (error.code !== 'ENOENT') console.error('Unable to read music metadata:', error.message);
+        return { tracks: {} };
+    }
+}
+
+function saveMusicStore(store) {
+    fs.writeFileSync(musicMetadataPath, JSON.stringify(store, null, 2));
+}
+
+function musicTrackView(track) {
+    return {
+        id: track.id,
+        name: track.name,
+        title: track.title,
+        artist: track.artist,
+        uploadedBy: track.uploadedBy,
+        userId: track.userId || null,
+        avatarId: track.avatarId || null,
+        mime: track.mime,
+        size: track.size,
+        uploadedAt: track.uploadedAt,
+        audioUrl: `/api/music/${encodeURIComponent(track.id)}/audio`
+    };
+}
+
+function getMusicTrack(store, id) {
+    const track = store.tracks[id];
+    if (!track) throw Object.assign(new Error('Music track not found'), { statusCode: 404 });
+    return track;
+}
+
+function getMusicFilePath(track) {
+    const extension = path.extname(track.name).toLowerCase();
+    if (!musicTypes[extension] || track.diskName !== `${track.id}${extension}`) {
+        throw Object.assign(new Error('Music file is unavailable'), { statusCode: 404 });
+    }
+    return path.join(musicDirectory, track.diskName);
+}
+
+async function handleMusicApi(request, response, url) {
+    if (request.method === 'GET' && url.pathname === '/api/music') {
+        const store = loadMusicStore();
+        const tracks = Object.values(store.tracks)
+            .filter((track) => !track.hidden && fs.existsSync(getMusicFilePath(track)))
+            .sort((left, right) => right.uploadedAt.localeCompare(left.uploadedAt))
+            .map(musicTrackView);
+        sendJson(response, 200, { tracks });
+        return;
+    }
+
+    if (request.method === 'POST' && url.pathname === '/api/music') {
+        const name = safeName(url.searchParams.get('name') || 'track.mp3');
+        const extension = path.extname(name).toLowerCase();
+        const mime = musicTypes[extension];
+        if (!mime) throw Object.assign(new Error('Use an AAC, FLAC, M4A, MP3, OGA, OGG, OPUS, or WAV audio file'), { statusCode: 400 });
+        const title = (url.searchParams.get('title') || path.basename(name, extension)).trim().slice(0, 100);
+        const artist = (url.searchParams.get('artist') || '').trim().slice(0, 100);
+        const userId = validChatUserId(url.searchParams.get('userId'));
+        const profile = getChatProfile(loadChatStore(), userId);
+        if (!title) throw Object.assign(new Error('Track title is required'), { statusCode: 400 });
+        const id = crypto.randomUUID();
+        const diskName = `${id}${extension}`;
+        const filePath = path.join(musicDirectory, diskName);
+        const size = await receiveMinecraftUpload(request, filePath, maxMusicBytes);
+        if (!size) {
+            fs.rmSync(filePath, { force: true });
+            throw Object.assign(new Error('Audio file is empty'), { statusCode: 400 });
+        }
+        const track = { id, diskName, name, title, artist, uploadedBy: profile.username, userId, avatarId: profile.avatarId, mime, size, uploadedAt: new Date().toISOString() };
+        const store = loadMusicStore();
+        store.tracks[id] = track;
+        saveMusicStore(store);
+        sendJson(response, 201, { track: musicTrackView(track) });
+        return;
+    }
+
+    const trackMatch = url.pathname.match(/^\/api\/music\/([a-f0-9-]+)(?:\/(audio))?$/i);
+    if (trackMatch && request.method === 'PUT' && !trackMatch[2]) {
+        const body = await readJsonBody(request, 16 * 1024);
+        const store = loadMusicStore();
+        const track = getMusicTrack(store, trackMatch[1]);
+        if (body.userId !== track.userId) throw Object.assign(new Error('Only the uploader can edit this track'), { statusCode: 403 });
+        if (typeof body.title === 'string') {
+            const title = body.title.trim();
+            if (!title || title.length > 100) throw Object.assign(new Error('Track title must be 1 to 100 characters'), { statusCode: 400 });
+            track.title = title;
+        }
+        if (typeof body.artist === 'string') track.artist = body.artist.trim().slice(0, 100);
+        saveMusicStore(store);
+        sendJson(response, 200, { track: musicTrackView(track) });
+        return;
+    }
+
+    if (trackMatch && request.method === 'DELETE' && !trackMatch[2]) {
+        const store = loadMusicStore();
+        const track = getMusicTrack(store, trackMatch[1]);
+        if (url.searchParams.get('userId') !== track.userId) throw Object.assign(new Error('Only the uploader can remove this track'), { statusCode: 403 });
+        const chatStore = loadChatStore();
+        const alreadyShared = chatStore.messages.some((message) => message.musicId === track.id);
+        if (alreadyShared) track.hidden = true;
+        else {
+            fs.rmSync(getMusicFilePath(track), { force: true });
+            delete store.tracks[track.id];
+        }
+        saveMusicStore(store);
+        sendJson(response, 200, { deleted: track.id, preservedForChat: alreadyShared });
+        return;
+    }
+
+    if (request.method === 'GET' && trackMatch?.[2]) {
+        const store = loadMusicStore();
+        const track = getMusicTrack(store, trackMatch[1]);
+        const filePath = getMusicFilePath(track);
+        if (!fs.existsSync(filePath)) throw Object.assign(new Error('Music file not found'), { statusCode: 404 });
+        const size = fs.statSync(filePath).size;
+        const range = request.headers.range;
+        let start = 0;
+        let end = size - 1;
+        let statusCode = 200;
+        if (range) {
+            const match = range.match(/^bytes=(\d*)-(\d*)$/);
+            if (!match) {
+                response.writeHead(416, { 'Content-Range': `bytes */${size}` });
+                response.end();
+                return;
+            }
+            if (match[1]) start = Number(match[1]);
+            if (match[2]) end = Number(match[2]);
+            if (!match[1] && match[2]) start = Math.max(0, size - Number(match[2]));
+            if (start > end || start >= size) {
+                response.writeHead(416, { 'Content-Range': `bytes */${size}` });
+                response.end();
+                return;
+            }
+            end = Math.min(end, size - 1);
+            statusCode = 206;
+        }
+        response.writeHead(statusCode, {
+            'Accept-Ranges': 'bytes',
+            'Content-Length': end - start + 1,
+            'Content-Type': track.mime,
+            'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(track.name)}`,
+            'X-Content-Type-Options': 'nosniff',
+            ...(statusCode === 206 ? { 'Content-Range': `bytes ${start}-${end}/${size}` } : {})
+        });
+        await pipeline(fs.createReadStream(filePath, { start, end }), response);
+        return;
+    }
+
+    sendJson(response, 404, { error: 'Music endpoint not found' });
+}
+
 function getShortsEntry(store, id) {
     const entry = store.videos[id];
     if (!entry) throw Object.assign(new Error('Short not found'), { statusCode: 404 });
@@ -1326,6 +1520,9 @@ async function handleShortsApi(request, response, url) {
                         id: crypto.randomUUID(),
                         path: relativePath,
                         caption: '',
+                        uploadedBy: 'Unknown uploader',
+                        userId: null,
+                        avatarId: null,
                         uploadedAt: fs.statSync(filePath).mtime.toISOString(),
                         likedBy: [],
                         comments: []
@@ -1339,6 +1536,9 @@ async function handleShortsApi(request, response, url) {
                     name: entry.name,
                     path: record.path,
                     caption: record.caption,
+                    uploadedBy: record.uploadedBy || 'Unknown uploader',
+                    userId: record.userId || null,
+                    avatarId: record.avatarId || null,
                     uploadedAt: record.uploadedAt,
                     size: metadata.size,
                     likes: record.likedBy.length,
@@ -1354,6 +1554,8 @@ async function handleShortsApi(request, response, url) {
 
     if (request.method === 'POST' && url.pathname === '/api/shorts') {
         const body = await readJsonBody(request);
+        const userId = validChatUserId(body.userId);
+        const profile = getChatProfile(loadChatStore(), userId);
         const filePath = safeStoragePath(body.path);
         if (path.dirname(filePath) !== shortsDirectory || !shortsVideoTypes[path.extname(filePath).toLowerCase()]) {
             throw Object.assign(new Error('Choose a supported video in the Shorts folder'), { statusCode: 400 });
@@ -1367,6 +1569,9 @@ async function handleShortsApi(request, response, url) {
             id: crypto.randomUUID(),
             path: body.path,
             caption: typeof body.caption === 'string' ? body.caption.trim().slice(0, 500) : '',
+            uploadedBy: profile.username,
+            userId,
+            avatarId: profile.avatarId,
             uploadedAt: new Date().toISOString(),
             likedBy: [],
             comments: []
@@ -1381,6 +1586,7 @@ async function handleShortsApi(request, response, url) {
     if (request.method === 'DELETE' && deleteMatch) {
         const store = loadShortsStore();
         const entry = getShortsEntry(store, deleteMatch[1]);
+        if (!entry.userId || url.searchParams.get('userId') !== entry.userId) throw Object.assign(new Error('Only the uploader can delete this video'), { statusCode: 403 });
         const filePath = safeStoragePath(entry.path);
         if (path.dirname(filePath) !== shortsDirectory || !shortsVideoTypes[path.extname(filePath).toLowerCase()]) {
             throw Object.assign(new Error('Short video is unavailable'), { statusCode: 404 });
@@ -1453,12 +1659,16 @@ async function handleShortsApi(request, response, url) {
             return;
         }
 
+        const userId = validChatUserId(body.userId);
+        const profile = getChatProfile(loadChatStore(), userId);
         const text = typeof body.text === 'string' ? body.text.trim() : '';
         if (!text || text.length > 500) throw Object.assign(new Error('Comments must be between 1 and 500 characters'), { statusCode: 400 });
         const comment = {
             id: crypto.randomUUID(),
             viewerId,
-            name: typeof body.name === 'string' ? body.name.trim().slice(0, 32) || 'Viewer' : 'Viewer',
+            userId,
+            name: profile.username,
+            avatarId: profile.avatarId,
             text,
             createdAt: new Date().toISOString()
         };
@@ -1552,14 +1762,16 @@ function getChatFilePath(file) {
 async function handleChatApi(request, response, url) {
     if (request.method === 'GET' && url.pathname === '/api/chat') {
         const store = loadChatStore();
+        const musicStore = loadMusicStore();
         const userId = url.searchParams.get('userId');
         const profile = userId ? store.profiles[userId] || null : null;
         const messages = store.messages.slice(-250).map((message) => ({
             ...message,
             file: message.fileId && store.files[message.fileId] ? chatFileView(store.files[message.fileId]) : null,
+            music: message.musicId && musicStore.tracks[message.musicId] ? musicTrackView(musicStore.tracks[message.musicId]) : null,
             reply: message.replyTo ? (() => {
                 const repliedTo = store.messages.find((entry) => entry.id === message.replyTo);
-                return repliedTo ? { id: repliedTo.id, username: repliedTo.username, text: repliedTo.text, fileName: repliedTo.fileId && store.files[repliedTo.fileId] ? store.files[repliedTo.fileId].name : '' } : null;
+                return repliedTo ? { id: repliedTo.id, username: repliedTo.username, text: repliedTo.text, fileName: repliedTo.fileId && store.files[repliedTo.fileId] ? store.files[repliedTo.fileId].name : '', musicTitle: repliedTo.musicId && musicStore.tracks[repliedTo.musicId] ? musicStore.tracks[repliedTo.musicId].title : '' } : null;
             })() : null,
             isPinned: Boolean(message.isPinned)
         }));
@@ -1665,15 +1877,18 @@ async function handleChatApi(request, response, url) {
         const profile = getChatProfile(store, userId);
         const text = typeof body.text === 'string' ? body.text.trim() : '';
         const file = body.fileId ? store.files[body.fileId] : null;
-        if (!text && !file) throw Object.assign(new Error('Write a message or attach a file'), { statusCode: 400 });
+        const musicStore = loadMusicStore();
+        const music = body.musicId ? musicStore.tracks[body.musicId] : null;
+        if (!text && !file && !music) throw Object.assign(new Error('Write a message or share an attachment or track'), { statusCode: 400 });
         if (text.length > 4000) throw Object.assign(new Error('Messages are limited to 4000 characters'), { statusCode: 400 });
         if (body.fileId && (!file || file.userId !== userId || file.category === 'image' && !body.fileId)) {
             throw Object.assign(new Error('Chat attachment not found'), { statusCode: 404 });
         }
+        if (body.musicId && !music) throw Object.assign(new Error('Music track not found'), { statusCode: 404 });
         const replyTo = typeof body.replyTo === 'string' && store.messages.some((message) => message.id === body.replyTo) ? body.replyTo : null;
         const message = {
             id: crypto.randomUUID(), userId, username: profile.username, avatarId: profile.avatarId,
-            text, fileId: file ? file.id : null, replyTo, reactions: {}, isPinned: false,
+            text, fileId: file ? file.id : null, musicId: music ? music.id : null, replyTo, reactions: {}, isPinned: false,
             createdAt: new Date().toISOString(), editedAt: null
         };
         store.messages.push(message);
@@ -1755,12 +1970,13 @@ const server = http.createServer(async (request, response) => {
             sendJson(response, 200, { daypart: configuredDaypart });
         } else if (url.pathname === '/api/stats' && request.method === 'GET') {
             sendJson(response, 200, getStats());
-        } else if (url.pathname.startsWith('/api/files') || url.pathname.startsWith('/api/shorts') || url.pathname.startsWith('/api/repos') || url.pathname.startsWith('/api/minecraft') || url.pathname === '/api/terminal' || url.pathname.startsWith('/api/chat')) {
+        } else if (url.pathname.startsWith('/api/files') || url.pathname.startsWith('/api/music') || url.pathname.startsWith('/api/shorts') || url.pathname.startsWith('/api/repos') || url.pathname.startsWith('/api/minecraft') || url.pathname === '/api/terminal' || url.pathname.startsWith('/api/chat')) {
             if (request.headers.authorization !== `Bearer ${apiToken}` && !isSameOriginDashboardRequest(request)) {
                 sendJson(response, 401, { error: 'A valid storage API bearer token is required' });
                 return;
             }
-            if (url.pathname.startsWith('/api/shorts')) await handleShortsApi(request, response, url);
+            if (url.pathname.startsWith('/api/music')) await handleMusicApi(request, response, url);
+            else if (url.pathname.startsWith('/api/shorts')) await handleShortsApi(request, response, url);
             else if (url.pathname.startsWith('/api/repos')) await handleRepositoryApi(request, response, url);
             else if (url.pathname.startsWith('/api/minecraft')) await handleMinecraftApi(request, response, url);
             else if (url.pathname === '/api/terminal') await handleOperationsTerminalApi(request, response, url);
@@ -1801,7 +2017,7 @@ function roomSnapshot(room) {
     return {
         code: room.code,
         game: room.game,
-        players: room.players.map(({ name, id }) => ({ name, id })),
+        players: room.players.map(({ name, id, avatarId }) => ({ name, id, avatarId })),
         started: room.players.length === 2,
         revision: room.revision,
         state
@@ -1845,11 +2061,12 @@ io.on('connection', (socket) => {
     socket.on('game:create', (payload = {}, reply = () => {}) => {
         if (roomForSocket(socket)) return reply({ error: 'Leave your current room first.' });
         if (!availableGames.has(payload.game)) return reply({ error: 'Choose a valid game.' });
-        const name = typeof payload.name === 'string' ? payload.name.trim().slice(0, 20) : '';
-        if (!name) return reply({ error: 'Enter your name first.' });
+        let profile;
+        try { profile = getChatProfile(loadChatStore(), validChatUserId(payload.userId)); }
+        catch (error) { return reply({ error: error.message }); }
         let code;
         do { code = crypto.randomBytes(3).toString('hex').toUpperCase(); } while (gameRooms.has(code));
-        const room = { code, game: payload.game, players: [{ id: socket.id, name }], revision: 0, state: newGameState(payload.game) };
+        const room = { code, game: payload.game, players: [{ id: socket.id, name: profile.username, avatarId: profile.avatarId, userId: profile.userId }], revision: 0, state: newGameState(payload.game) };
         gameRooms.set(code, room);
         socket.data.gameRoom = code;
         socket.join(code);
@@ -1863,9 +2080,10 @@ io.on('connection', (socket) => {
         const room = gameRooms.get(code);
         if (!room) return reply({ error: 'Room not found. Check the code and try again.' });
         if (room.players.length >= 2) return reply({ error: 'That room is already full.' });
-        const name = typeof payload.name === 'string' ? payload.name.trim().slice(0, 20) : '';
-        if (!name) return reply({ error: 'Enter your name first.' });
-        room.players.push({ id: socket.id, name });
+        let profile;
+        try { profile = getChatProfile(loadChatStore(), validChatUserId(payload.userId)); }
+        catch (error) { return reply({ error: error.message }); }
+        room.players.push({ id: socket.id, name: profile.username, avatarId: profile.avatarId, userId: profile.userId });
         socket.data.gameRoom = code;
         socket.join(code);
         emitRoom(room);

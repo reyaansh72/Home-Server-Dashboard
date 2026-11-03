@@ -146,6 +146,37 @@ function renderAttachment(file) {
     return wrapper;
 }
 
+function renderMusicTrack(track) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'message-attachment shared-music-attachment';
+    const heading = document.createElement('div');
+    heading.className = 'shared-music-heading';
+    const icon = document.createElement('span');
+    icon.className = 'material-symbols-outlined';
+    icon.textContent = 'library_music';
+    const copy = document.createElement('div');
+    copy.className = 'shared-music-copy';
+    const title = document.createElement('strong');
+    title.textContent = track.title;
+    const metadata = document.createElement('span');
+    metadata.textContent = `${track.artist || track.name} · shared by ${track.uploadedBy}`;
+    copy.append(title, metadata);
+    heading.append(icon, copy);
+    const audio = document.createElement('audio');
+    audio.className = 'message-audio shared-music-player';
+    audio.dataset.trackId = track.id;
+    audio.src = track.audioUrl;
+    audio.controls = true;
+    audio.preload = 'metadata';
+    audio.setAttribute('aria-label', `${track.title} by ${track.artist || 'unknown artist'}`);
+    const link = document.createElement('a');
+    link.className = 'shared-music-library-link';
+    link.href = '/music.html';
+    link.textContent = 'Open music library';
+    wrapper.append(heading, audio, link);
+    return wrapper;
+}
+
 function formatBytes(bytes) {
     if (!Number.isFinite(bytes) || bytes < 1024) return `${bytes || 0} B`;
     const units = ['KB', 'MB', 'GB'];
@@ -201,7 +232,7 @@ function renderMessage(message, previousMessage) {
         const quote = document.createElement('button');
         quote.className = 'message-reply-quote';
         quote.type = 'button';
-        quote.textContent = `${message.reply.username}: ${message.reply.text || message.reply.fileName || 'Attachment'}`;
+        quote.textContent = `${message.reply.username}: ${message.reply.text || message.reply.fileName || message.reply.musicTitle || 'Attachment'}`;
         quote.addEventListener('click', () => document.querySelector(`[data-message-id="${CSS.escape(message.reply.id)}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
         body.append(quote);
     }
@@ -211,6 +242,7 @@ function renderMessage(message, previousMessage) {
         text.textContent = message.text;
         body.append(text);
     }
+    if (message.music) body.append(renderMusicTrack(message.music));
     if (message.file) body.append(renderAttachment(message.file));
 
     const actionRow = document.createElement('div');
@@ -269,7 +301,7 @@ function renderPinned(pinned) {
         icon.className = 'material-symbols-outlined';
         icon.textContent = 'push_pin';
         const content = document.createElement('span');
-        content.textContent = `${message.username}: ${message.text || message.file?.name || 'Attachment'}`;
+        content.textContent = `${message.username}: ${message.text || message.file?.name || message.music?.title || 'Attachment'}`;
         button.append(icon, content);
         button.addEventListener('click', () => document.querySelector(`[data-message-id="${CSS.escape(message.id)}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
         pinnedList.append(button);
@@ -280,7 +312,13 @@ function renderPinned(pinned) {
 
 function renderMessages(pinned) {
     const atBottom = messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight < 90;
-    const filtered = searchTerm ? messages.filter((message) => `${message.username} ${message.text} ${message.file?.name || ''}`.toLowerCase().includes(searchTerm)) : messages;
+    const musicPlayback = new Map([...messageList.querySelectorAll('.shared-music-player')].map((audio) => [audio.dataset.trackId, {
+        currentTime: audio.currentTime,
+        paused: audio.paused,
+        volume: audio.volume,
+        playbackRate: audio.playbackRate
+    }]));
+    const filtered = searchTerm ? messages.filter((message) => `${message.username} ${message.text} ${message.file?.name || ''} ${message.music?.title || ''} ${message.music?.artist || ''}`.toLowerCase().includes(searchTerm)) : messages;
     document.getElementById('message-count').textContent = String(messages.length);
     renderPinned(pinned);
     if (!filtered.length) {
@@ -298,6 +336,16 @@ function renderMessages(pinned) {
     const fragment = document.createDocumentFragment();
     filtered.forEach((message, index) => fragment.append(renderMessage(message, filtered[index - 1])));
     messageList.replaceChildren(fragment);
+    for (const audio of messageList.querySelectorAll('.shared-music-player')) {
+        const playback = musicPlayback.get(audio.dataset.trackId);
+        if (!playback) continue;
+        audio.volume = playback.volume;
+        audio.playbackRate = playback.playbackRate;
+        audio.addEventListener('loadedmetadata', () => {
+            audio.currentTime = Math.min(playback.currentTime, audio.duration || playback.currentTime);
+            if (!playback.paused) audio.play().catch(() => {});
+        }, { once: true });
+    }
     if (atBottom && wasAtBottom && !searchTerm) scrollToBottom();
     else document.getElementById('jump-latest').hidden = false;
 }
@@ -332,6 +380,7 @@ async function refreshChat() {
 
 async function ensureProfile() {
     try {
+        await window.dashboardAccountReady;
         const result = await api(`/api/chat?userId=${encodeURIComponent(chatUserId)}`);
         if (result.profile) {
             profile = result.profile;
@@ -415,6 +464,75 @@ async function sendMessage(text = messageInput.value.trim(), file = pendingAttac
     } finally {
         sendButton.disabled = false;
         messageInput.focus();
+    }
+}
+
+async function openMusicSharePicker() {
+    const dialog = document.getElementById('music-share-dialog');
+    const list = document.getElementById('music-share-list');
+    list.replaceChildren();
+    const loading = document.createElement('p');
+    loading.className = 'file-comments-empty';
+    loading.textContent = 'Loading shared tracks…';
+    list.append(loading);
+    dialog.showModal();
+    try {
+        const result = await api('/api/music');
+        list.replaceChildren();
+        if (!result.tracks.length) {
+            const empty = document.createElement('p');
+            empty.className = 'file-comments-empty';
+            empty.textContent = 'The music library is empty. Add a track from the Music page first.';
+            list.append(empty);
+            return;
+        }
+        for (const track of result.tracks) {
+            const row = document.createElement('div');
+            row.className = 'music-share-row';
+            const icon = document.createElement('span');
+            icon.className = 'material-symbols-outlined';
+            icon.textContent = 'graphic_eq';
+            const info = document.createElement('div');
+            info.className = 'music-share-info';
+            const title = document.createElement('strong');
+            title.textContent = track.title;
+            const detail = document.createElement('span');
+            detail.textContent = `${track.artist || track.name} · ${track.uploadedBy}`;
+            info.append(title, detail);
+            const share = document.createElement('button');
+            share.className = 'drive-button primary-button';
+            share.type = 'button';
+            share.textContent = 'Share';
+            share.addEventListener('click', () => shareMusicToChat(track, share));
+            row.append(icon, info, share);
+            list.append(row);
+        }
+    } catch (error) {
+        list.replaceChildren();
+        const message = document.createElement('p');
+        message.className = 'file-comments-empty';
+        message.textContent = error.message;
+        list.append(message);
+    }
+}
+
+async function shareMusicToChat(track, button) {
+    if (!profile) return setStatus('Set up your chat profile before sharing a track', true);
+    button.disabled = true;
+    try {
+        await api('/api/chat/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: chatUserId, musicId: track.id, text: '' })
+        });
+        document.getElementById('music-share-dialog').close();
+        lastSnapshot = '';
+        await refreshChat();
+        scrollToBottom(true);
+        setStatus(`Shared “${track.title}” with the server`);
+    } catch (error) {
+        setStatus(error.message, true);
+        button.disabled = false;
     }
 }
 
@@ -624,6 +742,7 @@ async function saveProfile(event) {
         const result = await api('/api/chat/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: chatUserId, username, avatarId }) });
         profile = result.profile;
         localStorage.setItem('homeServer.chat.username', username);
+        window.dashboardAccountStore?.(result.profile);
         renderProfile();
         profileDialog.close();
         setStatus('Profile saved. Welcome to global chat.');
@@ -652,6 +771,7 @@ messageInput.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }
 });
 document.getElementById('attach-button').addEventListener('click', () => attachmentInput.click());
+document.getElementById('share-music-button').addEventListener('click', openMusicSharePicker);
 attachmentInput.addEventListener('change', () => { if (attachmentInput.files[0]) showPendingAttachment(attachmentInput.files[0]); });
 document.getElementById('emoji-button').addEventListener('click', () => { emojiPicker.hidden = !emojiPicker.hidden; });
 document.getElementById('voice-button').addEventListener('click', startRecording);
@@ -678,6 +798,7 @@ messageList.addEventListener('drop', (event) => {
 document.getElementById('profile-dialog').addEventListener('click', (event) => { if (event.target === profileDialog) profileDialog.close(); });
 document.getElementById('file-dialog').addEventListener('click', (event) => { if (event.target === fileDialog) fileDialog.close(); });
 document.querySelectorAll('[data-close-chat-dialog]').forEach((button) => button.addEventListener('click', () => button.closest('dialog').close()));
+document.querySelectorAll('[data-close-music-share]').forEach((button) => button.addEventListener('click', () => button.closest('dialog').close()));
 window.addEventListener('beforeunload', () => { if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop(); });
 
 buildEmojiPicker();

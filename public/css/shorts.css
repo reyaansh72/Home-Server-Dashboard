@@ -27,6 +27,8 @@
 .short-filename { margin-bottom: 5px; color: rgba(255, 255, 255, .82); font-size: 10px; }
 .short-caption { max-height: 4.5em; overflow: hidden; color: #fff; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; white-space: pre-wrap; }
 .short-time { margin-top: 7px; color: rgba(255, 255, 255, .73); font-size: 9px; }
+.short-uploader { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; color: rgba(255, 255, 255, .92); font-size: 9px; font-weight: 600; }
+.short-uploader img, .short-uploader > span:first-child { display: grid; width: 22px; height: 22px; place-items: center; overflow: hidden; border-radius: 50%; background: #527568; color: white; font-size: 9px; object-fit: cover; }
 .short-rail { display: flex; align-items: center; flex-direction: column; justify-content: flex-end; gap: 11px; padding-bottom: 12px; }
 .short-action { display: grid; justify-items: center; gap: 4px; padding: 0; border: 0; background: transparent; color: white; font: inherit; font-size: 9px; cursor: pointer; text-shadow: 0 1px 4px rgba(0, 0, 0, .7); }
 .short-action-icon { display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid rgba(255, 255, 255, .25); border-radius: 50%; background: rgb(var(--theme-surface-rgb) / .82); transition: transform .16s ease, background .16s ease, color .16s ease; backdrop-filter: blur(9px); }
@@ -59,11 +61,15 @@
 .short-comments-list { display: grid; max-height: 34vh; gap: 10px; overflow: auto; margin-bottom: 16px; }
 .short-comment { padding: 10px 11px; border: 1px solid rgba(255, 255, 255, .12); border-radius: 8px; background: rgba(255, 255, 255, .06); }
 .short-comment-head { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 5px; }
+.short-comment-author { display: flex; align-items: center; gap: 6px; }
+.short-comment-author img, .short-comment-author > span:first-child { display: grid; width: 23px; height: 23px; place-items: center; overflow: hidden; border-radius: 50%; background: #527568; color: white; font-size: 9px; object-fit: cover; }
 .short-comment-head strong { color: rgb(var(--theme-accent-rgb)); font-size: 11px; }
 .short-comment-head time { color: #aaa; font-size: 9px; }
 .short-comment p { color: #eee; font-size: 11px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .comments-empty { padding: 20px 10px; color: #ccc; font-size: 11px; text-align: center; }
 .short-comment-form { display: grid; }
+.short-comment-identity { display: flex; min-height: 34px; align-items: center; gap: 7px; color: #eee; font-size: 10px; }
+.short-comment-identity img, .short-comment-identity > span:first-child { display: grid; width: 27px; height: 27px; place-items: center; overflow: hidden; border-radius: 50%; background: #527568; color: white; font-size: 10px; object-fit: cover; }
 .short-comment-form .dialog-label { margin-top: 4px; }
 
 @keyframes short-arrive { from { opacity: 0; } to { opacity: 1; } }

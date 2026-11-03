@@ -75,6 +75,7 @@
 .player-slots { display: grid; gap: 6px; margin-top: 10px; }
 .player-slot { display: flex; min-height: 34px; align-items: center; gap: 8px; padding: 5px 8px; border: 1px solid rgba(255, 255, 255, .13); border-radius: 7px; color: white; font-size: 9px; }
 .player-slot .slot-dot { width: 7px; height: 7px; border-radius: 50%; background: #9bd357; }
+.player-slot img, .player-slot:not(.empty) .slot-dot { display: grid; width: 25px; height: 25px; flex: 0 0 auto; place-items: center; overflow: hidden; border-radius: 50%; background: #527568; color: white; font-size: 9px; font-weight: 700; object-fit: cover; }
 .player-slot.empty { color: #bcbcb9; border-style: dashed; }.player-slot.empty .slot-dot { background: #777; }
 .copy-room, .leave-room { display: inline-flex; min-height: 29px; align-items: center; gap: 5px; margin-top: 8px; padding: 0 8px; border: 1px solid rgba(255, 255, 255, .15); border-radius: 6px; background: transparent; color: #eee; font: inherit; font-size: 8px; cursor: pointer; }
 .copy-room .material-symbols-outlined { font-size: 14px; }.leave-room { float: right; color: #ffc1b8; }

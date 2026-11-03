@@ -2,7 +2,7 @@
 
 Your home server, but make it ✨ fancy ✨
 
-A responsive home-server dashboard packed with system stats, private file storage, a scrollable short-video feed, Git repository management, and even a Minecraft server manager.
+A responsive home-server dashboard packed with system stats, private file storage, a scrollable short-video feed, a shared music library, Git repository management, and even a Minecraft server manager.
 
 Whether you're on a desktop, tablet, or phone, the interface adapts to your screen and shares a background-reactive theme. Pretty cool, right?
 
@@ -51,6 +51,7 @@ A little tour of what's inside!
 | `/` | **Dashboard** — CPU, memory, storage, uptime, host details, local daypart, and clock. Your server's health at a glance! |
 | `/storage.html` | **Storage** — Browse files and folders, upload, sort, preview, and edit text or code files. |
 | `/shorts.html` | **Shorts** — A vertically scrolling video feed with uploads, playback, likes, and comments. |
+| `/music.html` | **Music** — A shared server library with uploads, uploader and artist details, inline playback, seek, volume, speed, shuffle, repeat, track management, and sharing to Global Chat. |
 | `/repos.html` | **Repositories** — Manage local Git repositories, edit code, view changes, commit, switch branches, push remotely, preview READMEs, and manage releases. |
 | `/minecraft.html` | **Minecraft** — Manage a Minecraft server with Java setup, file management, lifecycle controls, and its own dedicated console. |
 | `/games.html` | **Games** — A dashboard-matched arcade launcher for Flappy Bird, Pong, Rock Paper Scissors, Snake, Space Shooter, and Tic Tac Toe. Create a room and share its code to play with one other person over Socket.IO. |
@@ -59,6 +60,10 @@ A little tour of what's inside!
 | `/chat.html` | **Global Chat** — Shared server conversation with profiles, reactions, replies, pins, search, images, videos, files, voice notes, and file comments. |
 
 Chat usernames and avatars are saved per browser profile, while messages and uploaded attachments are shared in `data/chat/`. Chat has no account authentication, so expose it only to a trusted network; anyone who can reach the dashboard can post using a chosen username.
+
+The first dashboard visit asks for one username and profile logo. That shared browser profile is used for Chat, Music uploads, Shorts uploads and comments, Games rooms, and Repositories created from that browser. Click the avatar below the dashboard logo to edit it later. This is a shared profile, not a password-protected login; the app has no user authentication, so keep it on a trusted network.
+
+Music tracks are stored under `data/music/` and appear in the shared library for everyone on the server. Uploads support AAC, FLAC, M4A, MP3, OGA, OGG, OPUS, and WAV files up to 250 MiB. Tracks use the shared profile name and logo as uploader attribution. Tracks can be shared as playable cards in Global Chat; removing a track from the library preserves audio already linked in chat history.
 
 Game rooms are temporary and stay in server memory. Each room accepts up to two connected players; share the six-character room code to invite someone. Tic Tac Toe and Rock Paper Scissors validate moves on the server, Pong runs from shared server state, and Flappy Bird, Snake, and Space Shooter compare each player's score after both runs finish. Room state is cleared when the server restarts. The static-only preview below does not include Socket.IO, so multiplayer games require the Node.js server.
 
@@ -104,6 +109,7 @@ Here's where everything lives behind the scenes:
 | `data/files/` | Your uploaded files |
 | `data/files/Shorts/` | Uploaded Shorts videos |
 | `data/shorts.json` | Likes and comments |
+| `data/music/` | Shared music files and catalog |
 | `data/repos/` | Local Git repositories |
 | `data/minecraft/server/` | Managed Minecraft server |
 | `data/minecraft/runtimes/` | Temurin Java runtimes |
@@ -187,11 +193,12 @@ For all the technical details, check out **[API.md](API.md)**. It covers file, S
     |-- assets/           Backgrounds and icons
     |-- css/              Shared and page-specific styles
     |-- js/               Dashboard, Storage, Shorts, Repos,
-    |                      Minecraft, Games, Terminal, and theme logic
+    |                      Music, Minecraft, Games, Terminal, and theme logic
     |-- index.html
     |-- storage.html
     |-- repos.html
     |-- minecraft.html
+    |-- music.html
     |-- games.html
     |-- terminal.html
     `-- shorts.html

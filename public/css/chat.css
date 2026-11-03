@@ -44,6 +44,25 @@
 .message-image { display: block; max-width: min(100%, 390px); max-height: 300px; object-fit: contain; cursor: zoom-in; }
 .message-video { display: block; width: min(100%, 390px); max-height: 300px; background: #111; }
 .message-audio { display: block; width: min(330px, 70vw); height: 38px; }
+.shared-music-attachment { width: min(390px, 100%); padding: 9px; }
+.shared-music-heading { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; color: #b7e0d1; }
+.shared-music-heading > .material-symbols-outlined { color: #a7d9c6; font-size: 19px; }
+.shared-music-copy { min-width: 0; }
+.shared-music-copy strong, .shared-music-copy span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shared-music-copy strong { color: #f0f3ef; font-size: 10px; }
+.shared-music-copy span { margin-top: 3px; color: #c0cbc4; font-size: 8px; }
+.shared-music-player { width: 100%; }
+.shared-music-library-link { display: inline-block; margin-top: 6px; color: #b7dfd0; font-size: 8px; text-decoration: none; }
+.shared-music-library-link:hover { text-decoration: underline; }
+.music-share-dialog { width: min(520px, calc(100vw - 32px)); }
+.music-share-list { display: grid; max-height: min(56vh, 480px); gap: 6px; overflow-y: auto; }
+.music-share-row { display: grid; min-height: 48px; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 6px 8px; border: 1px solid rgba(255, 255, 255, .13); border-radius: 6px; background: rgba(255, 255, 255, .04); }
+.music-share-row > .material-symbols-outlined { color: #b7e0d1; font-size: 19px; }
+.music-share-info { min-width: 0; }
+.music-share-info strong, .music-share-info span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.music-share-info strong { color: #f1f3ef; font-size: 10px; }
+.music-share-info span { margin-top: 3px; color: #bec7c1; font-size: 8px; }
+.music-share-row .drive-button { min-height: 30px; padding: 0 9px; font-size: 9px; }
 .attachment-info { display: flex; min-height: 32px; align-items: center; gap: 8px; padding: 5px 9px; color: #b7d9d0; }
 .attachment-info > .material-symbols-outlined { font-size: 17px; }
 .attachment-detail-button { max-width: 100%; overflow: hidden; border: 0; background: transparent; color: #e8eee9; font: inherit; font-size: 9px; text-align: left; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }

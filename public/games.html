@@ -17,6 +17,7 @@
             <a class="sidebar-link" href="/" aria-label="Server overview" title="Server overview"><span class="material-symbols-outlined" aria-hidden="true">dashboard</span></a>
             <a class="sidebar-link" href="/storage.html" aria-label="Storage" title="Storage"><span class="material-symbols-outlined" aria-hidden="true">folder_open</span></a>
             <a class="sidebar-link" href="/shorts.html" aria-label="Shorts" title="Shorts"><span class="material-symbols-outlined" aria-hidden="true">smart_display</span></a>
+            <a class="sidebar-link" href="/music.html" aria-label="Music" title="Music"><span class="material-symbols-outlined" aria-hidden="true">library_music</span></a>
             <a class="sidebar-link" href="/repos.html" aria-label="Repositories" title="Repositories"><span class="material-symbols-outlined" aria-hidden="true">source</span></a>
             <a class="sidebar-link" href="/minecraft.html" aria-label="Minecraft server" title="Minecraft server"><span class="material-symbols-outlined" aria-hidden="true">stadia_controller</span></a>
             <a class="sidebar-link active" href="/games.html" aria-label="Games" title="Games"><span class="material-symbols-outlined" aria-hidden="true">sports_esports</span></a>
@@ -50,7 +51,7 @@
                 <section class="room-panel" aria-labelledby="room-title">
                     <div class="room-panel-heading"><span class="material-symbols-outlined" aria-hidden="true">meeting_room</span><div><p class="section-kicker">PLAY TOGETHER</p><h2 id="room-title">Game room</h2></div></div>
                     <label class="field-label" for="player-name">YOUR NAME</label>
-                    <input id="player-name" class="room-input" maxlength="20" autocomplete="nickname" placeholder="Choose a name" value="Player">
+                    <input id="player-name" class="room-input" autocomplete="nickname" placeholder="Set up your shared account" readonly>
                     <div class="selected-game" id="selected-game"><span class="material-symbols-outlined" aria-hidden="true">touch_app</span><span>Choose a game to get started</span></div>
                     <button id="create-room" class="room-button primary-button" type="button" disabled><span class="material-symbols-outlined" aria-hidden="true">add</span>Create room</button>
                     <div class="room-divider"><span>OR JOIN A FRIEND</span></div>
@@ -75,6 +76,7 @@
     </main>
     <script src="/socket.io/socket.io.js"></script>
     <script src="/js/theme.js?v=daypart-background"></script>
+    <script src="/js/account.js"></script>
     <script src="/js/games.js"></script>
 </body>
 </html>

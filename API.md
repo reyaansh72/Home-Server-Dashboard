@@ -1,6 +1,6 @@
 # Storage API
 
-The server stores files only under `data/files/`. Requests originating from the same-origin `/storage.html`, `/shorts.html`, and `/chat.html` websites work without a token. Other API clients, including other pages on the same host, must send the bearer token printed at server startup. To use a stable token, set `FILES_API_TOKEN` before starting the server.
+The server stores files under `data/files/` and shared music under `data/music/`. First-party dashboard pages, including `/music.html` and `/chat.html`, can use their same-origin APIs without a token. Other API clients, including other pages on the same host, must send the bearer token printed at server startup. To use a stable token, set `FILES_API_TOKEN` before starting the server.
 
 The server listens on `0.0.0.0` by default, as the dashboard did previously. Restrict access to a trusted LAN/firewall. For apps running on a different browser origin, set `CORS_ORIGIN` to that exact origin (for example `https://my-app.example`). Do not use a public origin for this private file API.
 
@@ -42,20 +42,32 @@ const { entries } = await response.json();
 Short videos are stored under `data/files/Shorts/`. The Shorts page supports MP4, WebM, MOV, and M4V uploads up to 250 MiB. Requests from the same-origin `/shorts.html` page are token-free; custom apps use the same bearer token described above.
 
 - `GET /api/shorts?viewerId=...` lists the feed with like state and comments for that browser viewer ID.
-- `POST /api/shorts` registers an uploaded video: `{ "path": "Shorts/clip.mp4", "caption": "A short caption" }`.
+- `POST /api/shorts` registers an uploaded video: `{ "path": "Shorts/clip.mp4", "caption": "A short caption", "userId": "<shared-profile-uuid>" }`. The uploader name and avatar come from that profile.
 - `GET /api/shorts/:id/video` streams a clip and supports HTTP byte ranges for seeking.
 - `POST /api/shorts/:id/like` toggles a like: `{ "viewerId": "stable-client-id" }`.
-- `POST /api/shorts/:id/comments` adds a comment: `{ "viewerId": "stable-client-id", "name": "Viewer", "text": "Nice clip" }`.
+- `POST /api/shorts/:id/comments` adds a comment: `{ "viewerId": "stable-client-id", "userId": "<shared-profile-uuid>", "text": "Nice clip" }`. The commenter name and avatar come from the shared profile.
 - `DELETE /api/shorts/:id` deletes the clip and its associated comments and likes.
 
 Likes and comments are stored in `data/shorts.json`. The feed offers snap scrolling, auto-play/pause based on the visible clip, mute, fullscreen, download, share-link copy, and delete actions. Responsive layout rules adapt the feed to phones, tablets, and desktops.
+
+## Music API
+
+The shared music catalog is stored in `data/music/music.json`, with audio files in `data/music/`. The same-origin `/music.html` and `/chat.html` pages can access the API without a token. Track uploader names are display labels; the dashboard does not provide authenticated user accounts.
+
+- `GET /api/music` lists globally available tracks and their metadata.
+- `POST /api/music?name=<filename>&title=<title>&artist=<artist>&userId=<shared-profile-uuid>` uploads raw audio bytes (up to 250 MiB). Supported extensions: AAC, FLAC, M4A, MP3, OGA, OGG, OPUS, WAV. Uploader name and logo are taken from the shared profile.
+- `GET /api/music/:id/audio` streams a track inline and supports HTTP byte ranges for seeking.
+- `PUT /api/music/:id` updates metadata with `{ "userId": "<shared-profile-uuid>", "title": "Track title", "artist": "Artist" }`.
+- `DELETE /api/music/:id?userId=<shared-profile-uuid>` removes a track from the library. Audio already shared in chat is retained so existing messages keep playing.
+
+The player supports seek, volume, playback speed, shuffle, and repeat modes. Global Chat can post and render music references using the `musicId` message field; the audio itself stays in the shared library.
 
 ## Repositories API
 
 Repositories created in the Repos page are stored under `data/repos/`. The same-origin `/repos.html` page does not need a token; external clients must use the bearer token. Git is invoked with fixed argument lists, repository names and file paths are confined to the repo root, and local Git hooks are disabled for commit, tag, and push actions.
 
 - `GET /api/repos` lists local repositories.
-- `POST /api/repos` creates a repository with an initial `README.md`: `{ "name": "my-project", "description": "Project summary" }`.
+- `POST /api/repos` creates a repository with an initial `README.md`: `{ "name": "my-project", "description": "Project summary", "userId": "<shared-profile-uuid>" }`. The creator's shared profile name and logo are stored for attribution.
 - `GET /api/repos/:name/status` returns current branch, upstream, ahead/behind counts, changed files, and configured origin URL.
 - `GET /api/repos/:name/tree?path=src` lists files in a repository folder.
 - `GET /api/repos/:name/file?path=src/index.js` reads a text file (up to 2 MiB).
@@ -111,11 +123,11 @@ Built-in actions are `help`, `status`, `uptime`, `disk`, `memory`, `repos`, and 
 
 Chat profiles, messages, reactions, pins, file comments, and attachment metadata are stored in `data/chat/chat.json`; uploaded files live in `data/chat/uploads/`. The chat is global to the server and has no account authentication, so expose it only to a trusted network. Client profile IDs are browser-generated identifiers, not credentials.
 
-- `GET /api/chat?userId=<uuid>` returns the requesting browser profile, latest 250 messages, replies, reactions, attachment metadata, and pinned messages.
+- `GET /api/chat?userId=<uuid>` returns the requesting browser profile, latest 250 messages, replies, reactions, attachment metadata, shared music metadata, and pinned messages.
 - `POST /api/chat/profile` saves a profile: `{ "userId": "<uuid>", "username": "Name", "avatarId": "<uploaded-file-id>" }`. Set `avatarId` to `null` to remove the avatar.
 - `POST /api/chat/upload?userId=<uuid>&kind=avatar|attachment|voice&name=<filename>` uploads raw file bytes. Avatars are limited to 5 MiB, voice notes to 15 MiB, and other attachments to 50 MiB. Supported types are images, MP4/WebM/MOV video, audio for voice notes, PDF, text, Markdown, CSV, and ZIP.
 - `GET /api/chat/files/:id/content` serves an image/audio/video inline or downloads a document.
-- `POST /api/chat/messages` posts `{ "userId": "<uuid>", "text": "Hello", "fileId": "<optional-file-id>", "replyTo": "<optional-message-id>" }`.
+- `POST /api/chat/messages` posts `{ "userId": "<uuid>", "text": "Hello", "fileId": "<optional-file-id>", "musicId": "<optional-track-id>", "replyTo": "<optional-message-id>" }`. A music-only message can be sent with an empty `text` and a valid `musicId`.
 - `PUT /api/chat/messages/:id` edits the caller's own message with `{ "userId": "<uuid>", "text": "Updated" }`.
 - `DELETE /api/chat/messages/:id` removes the caller's own message with `{ "userId": "<uuid>" }`.
 - `POST /api/chat/messages/:id/reactions` toggles a reaction with `{ "userId": "<uuid>", "emoji": "👍" }`.

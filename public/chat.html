@@ -18,6 +18,7 @@
             <a class="sidebar-link" href="/" aria-label="Server overview" title="Server overview"><span class="material-symbols-outlined" aria-hidden="true">dashboard</span></a>
             <a class="sidebar-link" href="/storage.html" aria-label="Storage" title="Storage"><span class="material-symbols-outlined" aria-hidden="true">folder_open</span></a>
             <a class="sidebar-link" href="/shorts.html" aria-label="Shorts" title="Shorts"><span class="material-symbols-outlined" aria-hidden="true">smart_display</span></a>
+            <a class="sidebar-link" href="/music.html" aria-label="Music" title="Music"><span class="material-symbols-outlined" aria-hidden="true">library_music</span></a>
             <a class="sidebar-link" href="/repos.html" aria-label="Repositories" title="Repositories"><span class="material-symbols-outlined" aria-hidden="true">source</span></a>
             <a class="sidebar-link" href="/minecraft.html" aria-label="Minecraft server" title="Minecraft server"><span class="material-symbols-outlined" aria-hidden="true">stadia_controller</span></a>
             <a class="sidebar-link" href="/games.html" aria-label="Games" title="Games"><span class="material-symbols-outlined" aria-hidden="true">sports_esports</span></a>
@@ -48,6 +49,7 @@
                 <form id="message-form" class="message-composer">
                     <div class="composer-tools">
                         <button id="attach-button" class="icon-button" type="button" title="Attach image, video, or file" aria-label="Attach image, video, or file"><span class="material-symbols-outlined" aria-hidden="true">attach_file</span></button>
+                        <button id="share-music-button" class="icon-button" type="button" title="Share a music track" aria-label="Share a music track"><span class="material-symbols-outlined" aria-hidden="true">library_music</span></button>
                         <input id="attachment-input" type="file" accept="image/*,video/mp4,video/webm,video/quicktime,.mov,.pdf,.txt,.md,.csv,.zip" hidden>
                         <button id="emoji-button" class="icon-button" type="button" title="Insert an emoji" aria-label="Insert an emoji"><span class="material-symbols-outlined" aria-hidden="true">mood</span></button>
                         <button id="voice-button" class="icon-button" type="button" title="Record a voice note" aria-label="Record a voice note"><span class="material-symbols-outlined" aria-hidden="true">mic</span></button>
@@ -83,7 +85,13 @@
         <form id="file-comment-form" class="file-comment-form"><label class="visually-hidden" for="file-comment-input">Comment on this file</label><textarea id="file-comment-input" class="dialog-input" rows="2" maxlength="1000" required placeholder="Add a comment about this file…"></textarea><button class="drive-button primary-button" type="submit"><span class="material-symbols-outlined" aria-hidden="true">send</span>Comment</button></form>
     </dialog>
 
+    <dialog id="music-share-dialog" class="drive-dialog chat-dialog music-share-dialog">
+        <div class="dialog-header"><div><p class="dialog-kicker">SHARED SERVER LIBRARY</p><h2>Share a music track</h2></div><button class="icon-button dialog-close" type="button" data-close-music-share aria-label="Close"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></div>
+        <div id="music-share-list" class="music-share-list"><p class="file-comments-empty">Loading shared tracks…</p></div>
+    </dialog>
+
     <script src="/js/theme.js"></script>
+    <script src="/js/account.js"></script>
     <script src="/js/chat.js"></script>
 </body>
 </html>

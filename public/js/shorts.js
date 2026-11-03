@@ -9,6 +9,7 @@ const selectedShortsFileTypes = new Set(['.mp4', '.webm', '.mov', '.m4v']);
 const createViewerId = () => window.crypto?.randomUUID?.() || `viewer-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const shortsViewerId = localStorage.getItem('home-shorts-viewer') || createViewerId();
 localStorage.setItem('home-shorts-viewer', shortsViewerId);
+let account = null;
 let videos = [];
 let selectedUpload = null;
 let activeCommentVideo = null;
@@ -65,15 +66,16 @@ function renderShorts() {
                     <button class="icon-button" type="button" data-action="fullscreen" title="Fullscreen" aria-label="Fullscreen"><span class="material-symbols-outlined" aria-hidden="true">fullscreen</span></button>
                 </div>
                 <button class="short-player-button" type="button" data-action="play" aria-label="Play video"><span class="material-symbols-outlined" aria-hidden="true">play_arrow</span></button>
-                <div class="short-bottom"><p class="short-filename">${escapeHtml(video.name)}</p><p class="short-caption">${escapeHtml(video.caption || '')}</p><p class="short-time">Added ${escapeHtml(formatDate(video.uploadedAt))}</p></div>
+                <div class="short-bottom"><div class="short-uploader"></div><p class="short-filename">${escapeHtml(video.name)}</p><p class="short-caption">${escapeHtml(video.caption || '')}</p><p class="short-time">Added ${escapeHtml(formatDate(video.uploadedAt))}</p></div>
             </div>
             <div class="short-rail">
                 <button class="short-action like-action ${video.liked ? 'liked' : ''}" type="button" data-action="like" aria-label="${video.liked ? 'Unlike' : 'Like'}" aria-pressed="${video.liked}"><span class="short-action-icon"><span class="material-symbols-outlined" aria-hidden="true">favorite</span></span><span class="like-count">${video.likes}</span></button>
                 <button class="short-action" type="button" data-action="comments" aria-label="Open ${video.comments.length} comments"><span class="short-action-icon"><span class="material-symbols-outlined" aria-hidden="true">chat_bubble</span></span><span>${video.comments.length}</span></button>
                 <button class="short-action" type="button" data-action="share" aria-label="Copy video link"><span class="short-action-icon"><span class="material-symbols-outlined" aria-hidden="true">link</span></span><span>Link</span></button>
-                <details class="short-card-menu"><summary class="short-action" aria-label="More video actions" title="More actions"><span class="short-action-icon"><span class="material-symbols-outlined" aria-hidden="true">more_horiz</span></span></summary><div class="short-menu-items"><button type="button" data-action="download"><span class="material-symbols-outlined" aria-hidden="true">download</span>Download</button><button type="button" data-action="delete"><span class="material-symbols-outlined" aria-hidden="true">delete</span>Delete</button></div></details>
+                <details class="short-card-menu"><summary class="short-action" aria-label="More video actions" title="More actions"><span class="short-action-icon"><span class="material-symbols-outlined" aria-hidden="true">more_horiz</span></span></summary><div class="short-menu-items"><button type="button" data-action="download"><span class="material-symbols-outlined" aria-hidden="true">download</span>Download</button>${video.userId === account?.userId ? '<button type="button" data-action="delete"><span class="material-symbols-outlined" aria-hidden="true">delete</span>Delete</button>' : ''}</div></details>
             </div>`;
         feed.append(card);
+        renderIdentity(card.querySelector('.short-uploader'), video.uploadedBy, video.avatarId);
         const player = card.querySelector('video');
         player.muted = true;
         player.addEventListener('play', () => {
@@ -148,7 +150,7 @@ async function uploadShort(file) {
     try {
         response = await apiRequest('/api/shorts', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path: shortPath, caption: document.getElementById('short-caption').value })
+            body: JSON.stringify({ path: shortPath, caption: document.getElementById('short-caption').value, userId: account.userId })
         });
     } catch (error) {
         await apiRequest(`/api/files?path=${encodeURIComponent(shortPath)}`, { method: 'DELETE' }).catch(() => {});
@@ -173,8 +175,9 @@ function showComments(video) {
     if (!video.comments.length) {
         list.innerHTML = '<p class="comments-empty">No comments yet. Start the conversation.</p>';
     } else {
-        list.innerHTML = [...video.comments].reverse().map((comment) => `<article class="short-comment"><div class="short-comment-head"><strong>${escapeHtml(comment.name)}</strong><time>${escapeHtml(formatDate(comment.createdAt))}</time></div><p>${escapeHtml(comment.text)}</p></article>`).join('');
+        list.innerHTML = [...video.comments].reverse().map((comment) => `<article class="short-comment"><div class="short-comment-head"><span class="short-comment-author">${comment.avatarId ? `<img src="/api/chat/files/${encodeURIComponent(comment.avatarId)}/content" alt="">` : `<span>${escapeHtml(comment.name.charAt(0).toUpperCase())}</span>`}<strong>${escapeHtml(comment.name)}</strong></span><time>${escapeHtml(formatDate(comment.createdAt))}</time></div><p>${escapeHtml(comment.text)}</p></article>`).join('');
     }
+    renderIdentity(document.getElementById('short-comment-identity'), account.username, account.avatarId);
     commentsDialog.showModal();
     document.getElementById('comment-text').focus();
 }
@@ -230,7 +233,7 @@ feed.addEventListener('click', async (event) => {
             }
             case 'delete':
                 if (!window.confirm(`Delete “${video.name}” and its comments?`)) break;
-                await apiRequest(`/api/shorts/${encodeURIComponent(video.id)}`, { method: 'DELETE' });
+                await apiRequest(`/api/shorts/${encodeURIComponent(video.id)}?userId=${encodeURIComponent(account.userId)}`, { method: 'DELETE' });
                 await loadShorts();
                 showStatus('Video deleted');
                 break;
@@ -240,15 +243,32 @@ feed.addEventListener('click', async (event) => {
     }
 });
 
+function renderIdentity(container, username, avatarId) {
+    if (!container) return;
+    container.replaceChildren();
+    if (avatarId) {
+        const image = document.createElement('img');
+        image.src = `/api/chat/files/${encodeURIComponent(avatarId)}/content`;
+        image.alt = '';
+        container.append(image);
+    } else {
+        const initial = document.createElement('span');
+        initial.textContent = username?.charAt(0).toUpperCase() || '?';
+        container.append(initial);
+    }
+    const name = document.createElement('strong');
+    name.textContent = username || 'Account';
+    container.append(name);
+}
+
 document.getElementById('short-comment-form').addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!activeCommentVideo) return;
     const textInput = document.getElementById('comment-text');
-    const nameInput = document.getElementById('comment-name');
     try {
         const response = await apiRequest(`/api/shorts/${encodeURIComponent(activeCommentVideo.id)}/comments`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ viewerId: shortsViewerId, name: nameInput.value.trim() || 'Viewer', text: textInput.value })
+            body: JSON.stringify({ viewerId: shortsViewerId, userId: account.userId, text: textInput.value })
         });
         const result = await response.json();
         activeCommentVideo.comments.push(result.comment);
@@ -297,4 +317,13 @@ feed.addEventListener('keydown', (event) => {
 });
 window.addEventListener('resize', scheduleActivePlayback);
 
-loadShorts();
+window.dashboardAccountReady.then((profile) => {
+    account = profile;
+    renderIdentity(document.getElementById('short-comment-identity'), profile.username, profile.avatarId);
+    return loadShorts();
+}).catch((error) => showStatus(error.message, true));
+window.addEventListener('dashboard-account-changed', (event) => {
+    account = event.detail;
+    renderIdentity(document.getElementById('short-comment-identity'), account.username, account.avatarId);
+    loadShorts();
+});
