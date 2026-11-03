@@ -270,7 +270,7 @@ function renderEntries() {
             <span class="file-meta size-meta">${entry.isFolder ? 'Folder' : formatBytes(entry.size)}</span>
             <div class="file-actions">${isMinecraftScope ? '' : `<button class="icon-button star-button" type="button" data-action="star" aria-label="${starred ? 'Remove from starred' : 'Add to starred'}" aria-pressed="${starred}" title="${starred ? 'Remove from starred' : 'Add to starred'}"><span class="material-symbols-outlined" aria-hidden="true">${starred ? 'star' : 'star_outline'}</span></button>`}
                 <details class="file-menu"><summary class="icon-button" aria-label="More actions" title="More actions"><span class="material-symbols-outlined" aria-hidden="true">more_vert</span></summary><div class="file-menu-items">
-                    ${entry.isFolder ? '' : `<button type="button" data-action="preview"><span class="material-symbols-outlined">visibility</span>Preview</button>${editableExtensions.includes(entry.extension) ? '<button type="button" data-action="edit"><span class="material-symbols-outlined">edit</span>Edit text</button>' : ''}<button type="button" data-action="download"><span class="material-symbols-outlined">download</span>Download</button>`}
+                    ${entry.isFolder ? '' : `<button type="button" data-action="preview"><span class="material-symbols-outlined">visibility</span>Preview</button>${editableExtensions.includes(entry.extension) ? '<button type="button" data-action="edit"><span class="material-symbols-outlined">edit</span>Edit file</button>' : ''}<button type="button" data-action="download"><span class="material-symbols-outlined">download</span>Download</button>`}
                     ${isMinecraftScope ? '' : '<button type="button" data-action="duplicate"><span class="material-symbols-outlined">content_copy</span>Make a copy</button><button type="button" data-action="rename"><span class="material-symbols-outlined">drive_file_rename_outline</span>Rename</button><button type="button" data-action="move"><span class="material-symbols-outlined">drive_file_move</span>Move</button>'}
                     <button type="button" data-action="copy"><span class="material-symbols-outlined">link</span>Copy path</button>
                     <button type="button" class="danger-action" data-action="delete"><span class="material-symbols-outlined">delete</span>Delete</button>
@@ -496,6 +496,22 @@ async function uploadFiles(fileList) {
 }
 
 filesView.addEventListener('click', async (event) => {
+    const menuSummary = event.target.closest('.file-menu > summary');
+    if (menuSummary) {
+        const menu = menuSummary.closest('.file-menu');
+        requestAnimationFrame(() => {
+            if (!menu.open) {
+                menu.classList.remove('opens-up');
+                return;
+            }
+            const menuItems = menu.querySelector('.file-menu-items');
+            const summaryBounds = menuSummary.getBoundingClientRect();
+            const menuHeight = Math.min(menuItems.scrollHeight, window.innerHeight * 0.6);
+            const roomBelow = window.innerHeight - summaryBounds.bottom;
+            menu.classList.toggle('opens-up', roomBelow < menuHeight && summaryBounds.top > menuHeight);
+        });
+        return;
+    }
     const button = event.target.closest('[data-action]');
     if (!button) return;
     const row = button.closest('[data-item-path]');
