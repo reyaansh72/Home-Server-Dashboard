@@ -1,7 +1,20 @@
 (() => {
     const userIdKey = 'homeServer.chat.userId';
     const usernameKey = 'homeServer.chat.username';
-    const profileId = localStorage.getItem(userIdKey) || (window.crypto?.randomUUID?.() || `user-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+    function createProfileId() {
+        const bytes = new Uint8Array(16);
+        if (window.crypto?.getRandomValues) window.crypto.getRandomValues(bytes);
+        else for (let index = 0; index < bytes.length; index += 1) bytes[index] = Math.floor(Math.random() * 256);
+        bytes[6] = (bytes[6] & 0x0f) | 0x40;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+        const hex = [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+        return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+    }
+
+    const storedProfileId = localStorage.getItem(userIdKey);
+    const profileId = storedProfileId && uuidPattern.test(storedProfileId) ? storedProfileId : createProfileId();
     localStorage.setItem(userIdKey, profileId);
     let profile = null;
     let resolveAccountReady;
@@ -48,6 +61,18 @@
         button.setAttribute('aria-label', button.title);
     }
 
+    function configureAccountDialog() {
+        const hasLogo = Boolean(profile?.avatarId);
+        document.getElementById('dashboard-account-title').textContent = profile
+            ? hasLogo ? 'Your account' : 'Add your profile logo'
+            : 'Set up your account';
+        document.getElementById('dashboard-account-hint').textContent = hasLogo
+            ? 'Your name and logo are shared across Chat, Music, Shorts, Games, and Repositories.'
+            : 'Your name and logo will appear in Chat, Music, Shorts, Games, and Repositories.';
+        document.getElementById('dashboard-account-close').hidden = !hasLogo;
+        document.getElementById('dashboard-account-cancel').hidden = !hasLogo;
+    }
+
     function addAccountControls() {
         const sidebarTop = document.querySelector('.sidebar-top');
         if (!sidebarTop || document.getElementById('dashboard-account-button')) return;
@@ -60,6 +85,7 @@
         button.addEventListener('click', () => {
             document.getElementById('dashboard-account-name').value = profile?.username || '';
             document.getElementById('dashboard-account-logo').value = '';
+            configureAccountDialog();
             document.getElementById('dashboard-account-dialog').showModal();
         });
         sidebarTop.append(button);
@@ -87,7 +113,7 @@
         dialog.querySelector('#dashboard-account-close').addEventListener('click', () => dialog.close());
         dialog.querySelector('#dashboard-account-cancel').addEventListener('click', () => dialog.close());
         dialog.addEventListener('click', (event) => {
-            if (event.target === dialog && profile) dialog.close();
+            if (event.target === dialog && profile?.avatarId) dialog.close();
         });
     }
 
@@ -100,8 +126,9 @@
         const username = nameInput.value.trim().replace(/\s+/g, ' ');
         const avatarFile = logoInput.files[0];
         if (!username || username.length > 32) return;
-        if (!profile && !avatarFile) {
+        if (!avatarFile && !profile?.avatarId) {
             error.textContent = 'Choose a profile logo to finish setting up your account.';
+            logoInput.focus();
             return;
         }
         submit.disabled = true;
@@ -148,12 +175,7 @@
         }
         if (!profile || !profile.avatarId) {
             const dialog = document.getElementById('dashboard-account-dialog');
-            document.getElementById('dashboard-account-title').textContent = profile ? 'Add your profile logo' : 'Set up your account';
-            document.getElementById('dashboard-account-hint').textContent = profile
-                ? 'Add a logo to complete your shared dashboard profile.'
-                : 'Your name and logo will appear in Chat, Music, Shorts, Games, and Repositories.';
-            document.getElementById('dashboard-account-close').hidden = !profile;
-            document.getElementById('dashboard-account-cancel').hidden = !profile;
+            configureAccountDialog();
             dialog.showModal();
         }
         if (profile?.avatarId) return profile;

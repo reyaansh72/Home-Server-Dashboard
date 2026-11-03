@@ -2,7 +2,7 @@
 .dashboard-account-button:hover { transform: translateY(-1px); border-color: rgb(var(--theme-accent-rgb)); }
 .dashboard-account-avatar, .dashboard-account-initial { display: grid; width: 36px; height: 36px; place-items: center; overflow: hidden; border-radius: 50%; background: linear-gradient(140deg, #4b817b, #b78560); color: white; font-size: 13px; font-weight: 700; object-fit: cover; }
 .dashboard-account-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.dashboard-account-dialog { width: min(440px, calc(100vw - 32px)); max-height: min(88vh, 700px); padding: 18px; border: 1px solid rgba(255, 255, 255, .25); border-radius: 9px; background: rgb(var(--theme-surface-rgb, 50 50 51) / .98); color: white; box-shadow: 0 18px 65px rgba(0, 0, 0, .45); }
+.dashboard-account-dialog { position: fixed; top: 50%; left: 50%; width: min(440px, calc(100vw - 32px)); max-height: min(88vh, 700px); margin: 0; padding: 18px; transform: translate(-50%, -50%); border: 1px solid rgba(255, 255, 255, .25); border-radius: 9px; background: rgb(var(--theme-surface-rgb, 50 50 51) / .98); color: white; box-shadow: 0 18px 65px rgba(0, 0, 0, .45); }
 .dashboard-account-dialog::backdrop { background: rgba(8, 12, 10, .68); backdrop-filter: blur(4px); }
 .dashboard-account-dialog form { display: grid; }
 .dashboard-account-dialog .dialog-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 15px; }
