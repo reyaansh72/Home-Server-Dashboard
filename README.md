@@ -112,7 +112,6 @@ Here's where everything lives behind the scenes:
 | `data/music/` | Shared music files and catalog |
 | `data/repos/` | Local Git repositories |
 | `data/minecraft/server/` | Managed Minecraft server |
-| `data/minecraft/runtimes/` | Temurin Java runtimes |
 | `data/chat/` | Shared chat messages and uploads |
 
 These directories are created when needed and aren't served as public static files.
@@ -124,9 +123,7 @@ The Minecraft manager supports:
 - One managed Minecraft server.
 - Uploaded JARs or a browser-selected server folder.
 - Explicit EULA acceptance.
-- Java versions 8–25.
-- Automatic Temurin installation on Linux x64 and arm64 hosts.
-- Download checksum verification.
+- Uses the Java executable installed on the host and available on `PATH`.
 - A dedicated console connected only to the managed server process.
 
 ### 🖥️ Operations Terminal

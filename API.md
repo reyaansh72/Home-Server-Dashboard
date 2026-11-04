@@ -87,11 +87,11 @@ The Repos UI offers Code, Changes, Commits, README, and Releases views. CodeMirr
 
 ## Minecraft Manager API
 
-The manager supports one server in `data/minecraft/server/`; Java runtimes are stored in `data/minecraft/runtimes/`. The same-origin `/minecraft.html` page uses first-party access. Java runtime installs use Eclipse Temurin HTTPS downloads and verify SHA-256 checksums. Automatic Java installation currently supports Linux x64 and arm64 hosts.
+The manager supports one server in `data/minecraft/server/` and launches it with the `java` executable available on the host process `PATH`. Java is not downloaded or managed by the dashboard. The same-origin `/minecraft.html` page uses first-party access.
 
-- `GET /api/minecraft` returns configuration, runtime install state, process state, and recent Minecraft console output.
-- `POST /api/minecraft/config` creates the one managed server: `{ "name": "My Server", "javaVersion": 21, "ramMb": 2048, "jarFile": "server.jar", "mode": "jar", "eulaAccepted": true }`. `mode` may be `jar` or `folder`; EULA acceptance is required.
-- `PUT /api/minecraft/config` updates the server name, Java version, or RAM limit.
+- `GET /api/minecraft` returns configuration, whether host Java is available, process state, and recent Minecraft console output.
+- `POST /api/minecraft/config` creates the one managed server: `{ "name": "My Server", "ramMb": 2048, "jarFile": "server.jar", "mode": "jar", "eulaAccepted": true }`. `mode` may be `jar` or `folder`; EULA acceptance is required.
+- `PUT /api/minecraft/config` updates the server name or RAM limit.
 - `DELETE /api/minecraft` stops and removes the managed server directory and configuration.
 - `POST /api/minecraft/upload?path=server.jar` streams a file into the managed server folder (up to 1 GiB per file).
 - `GET /api/minecraft/files?path=world` lists a server folder.
@@ -100,8 +100,7 @@ The manager supports one server in `data/minecraft/server/`; Java runtimes are s
 - `PUT /api/minecraft/file?path=server.properties` creates or replaces a text file (up to 2 MiB).
 - `DELETE /api/minecraft/file?path=old.txt` deletes a server file.
 - `GET /api/minecraft/download?path=logs/latest.log` downloads a server file; `GET /api/minecraft/preview?path=server.properties` serves an inline preview.
-- `POST /api/minecraft/install-java` installs a Temurin runtime: `{ "version": 21 }`. Supported versions are 8 through 25.
-- `POST /api/minecraft/start` starts the configured server with its selected Java runtime and memory limit.
+- `POST /api/minecraft/start` starts the configured server with host Java and its memory limit. It returns an error if Java is not available on the server process `PATH`.
 - `POST /api/minecraft/stop` stops the server process.
 - `POST /api/minecraft/console` sends a command to the Minecraft process stdin: `{ "command": "list" }`.
 

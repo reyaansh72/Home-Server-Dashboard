@@ -3,7 +3,6 @@ const os = require('node:os');
 const path = require('node:path');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
-const https = require('node:https');
 const { pipeline } = require('node:stream/promises');
 const { Server } = require('socket.io');
 
@@ -13,7 +12,6 @@ const repositoriesDirectory = path.join(__dirname, 'data', 'repos');
 const repositoriesMetadataPath = path.join(__dirname, 'data', 'repos.json');
 const minecraftDirectory = path.join(__dirname, 'data', 'minecraft');
 const minecraftServerDirectory = path.join(minecraftDirectory, 'server');
-const minecraftRuntimesDirectory = path.join(minecraftDirectory, 'runtimes');
 const minecraftMetadataPath = path.join(minecraftDirectory, 'manager.json');
 const shortsDirectory = path.join(storageDirectory, 'Shorts');
 const shortsMetadataPath = path.join(__dirname, 'data', 'shorts.json');
@@ -37,14 +35,12 @@ let terminalAllowedCommands = new Set((process.env.TERMINAL_ALLOWED_COMMANDS ===
 fs.mkdirSync(shortsDirectory, { recursive: true });
 fs.mkdirSync(repositoriesDirectory, { recursive: true });
 fs.mkdirSync(minecraftDirectory, { recursive: true });
-fs.mkdirSync(minecraftRuntimesDirectory, { recursive: true });
 fs.mkdirSync(musicDirectory, { recursive: true });
 fs.mkdirSync(chatUploadsDirectory, { recursive: true });
 let previousCpu = readCpuTimes();
 let cpuUsage = 0;
 let minecraftProcess = null;
 let minecraftLogLines = [];
-let minecraftInstallInProgress = false;
 
 function readCpuTimes() {
     return os.cpus().reduce((totals, cpu) => {
@@ -320,12 +316,14 @@ function safeTagName(name) {
     return name;
 }
 
-const supportedJavaVersions = Array.from({ length: 18 }, (_, index) => index + 8);
-
 function loadMinecraftMetadata() {
     try {
         const metadata = JSON.parse(fs.readFileSync(minecraftMetadataPath, 'utf8'));
-        return metadata && metadata.configured ? metadata : { configured: false };
+        if (!metadata || !metadata.configured) return { configured: false };
+        const supportedFields = ['configured', 'name', 'ramMb', 'mode', 'jarFile', 'eulaAccepted', 'createdAt'];
+        const normalized = Object.fromEntries(Object.entries(metadata).filter(([key]) => supportedFields.includes(key)));
+        if (JSON.stringify(metadata) !== JSON.stringify(normalized)) fs.writeFileSync(minecraftMetadataPath, JSON.stringify(normalized, null, 2));
+        return normalized;
     } catch (error) {
         if (error.code !== 'ENOENT') console.error('Unable to read Minecraft manager data:', error.message);
         return { configured: false };
@@ -334,6 +332,19 @@ function loadMinecraftMetadata() {
 
 function saveMinecraftMetadata(metadata) {
     fs.writeFileSync(minecraftMetadataPath, JSON.stringify(metadata, null, 2));
+}
+
+function hostJavaPath() {
+    const executable = process.platform === 'win32' ? 'java.exe' : 'java';
+    for (const directory of (process.env.PATH || '').split(path.delimiter)) {
+        if (!directory) continue;
+        const candidate = path.join(directory, executable);
+        try {
+            fs.accessSync(candidate, fs.constants.X_OK);
+            return candidate;
+        } catch {}
+    }
+    return null;
 }
 
 function safeMinecraftFile(relativePath = '') {
@@ -360,103 +371,10 @@ function safeMinecraftFile(relativePath = '') {
     return filePath;
 }
 
-function httpsRequestBuffer(url, maxBytes = 512 * 1024 * 1024, redirects = 5) {
-    return new Promise((resolve, reject) => {
-        const parsed = new URL(url);
-        if (parsed.protocol !== 'https:') return reject(Object.assign(new Error('Downloads must use HTTPS'), { statusCode: 400 }));
-        const request = https.get(parsed, { headers: { 'User-Agent': 'HomeServerDashboard/1.0' } }, (response) => {
-            if ([301, 302, 303, 307, 308].includes(response.statusCode) && response.headers.location && redirects > 0) {
-                response.resume();
-                const destination = new URL(response.headers.location, parsed).toString();
-                httpsRequestBuffer(destination, maxBytes, redirects - 1).then(resolve, reject);
-                return;
-            }
-            if (response.statusCode !== 200) {
-                response.resume();
-                reject(Object.assign(new Error(`Download server returned ${response.statusCode}`), { statusCode: 502 }));
-                return;
-            }
-            const chunks = [];
-            let size = 0;
-            response.on('data', (chunk) => {
-                size += chunk.length;
-                if (size > maxBytes) {
-                    request.destroy(Object.assign(new Error('Download exceeds the allowed size'), { statusCode: 413 }));
-                    return;
-                }
-                chunks.push(chunk);
-            });
-            response.on('end', () => resolve(Buffer.concat(chunks)));
-            response.on('error', reject);
-        });
-        request.setTimeout(120000, () => request.destroy(new Error('Download timed out')));
-        request.on('error', reject);
-    });
-}
-
-function runSystemTool(binary, args, options = {}) {
-    return new Promise((resolve, reject) => {
-        const child = spawn(binary, args, { cwd: options.cwd || minecraftDirectory, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
-        const stdout = [];
-        const stderr = [];
-        child.stdout.on('data', (chunk) => stdout.push(chunk));
-        child.stderr.on('data', (chunk) => stderr.push(chunk));
-        child.on('error', (error) => reject(Object.assign(new Error(error.message), { statusCode: 503 })));
-        child.on('close', (code) => {
-            if (code === 0) resolve(Buffer.concat(stdout).toString('utf8'));
-            else reject(Object.assign(new Error(Buffer.concat(stderr).toString('utf8').trim() || `${binary} exited with code ${code}`), { statusCode: 500 }));
-        });
-    });
-}
-
 function appendMinecraftLog(chunk) {
     const lines = chunk.toString('utf8').split(/\r?\n/).filter(Boolean);
     minecraftLogLines.push(...lines.map((text) => ({ time: new Date().toISOString(), text })));
     if (minecraftLogLines.length > 2000) minecraftLogLines = minecraftLogLines.slice(-2000);
-}
-
-async function installMinecraftJava(version) {
-    if (!supportedJavaVersions.includes(version)) throw Object.assign(new Error('Select a Java version from 8 to 25'), { statusCode: 400 });
-    if (process.platform !== 'linux' || !['x64', 'arm64'].includes(process.arch)) {
-        throw Object.assign(new Error('Automatic Java setup currently supports Linux x64 and arm64 hosts'), { statusCode: 501 });
-    }
-    const runtimeDirectory = path.join(minecraftRuntimesDirectory, `temurin-${version}`);
-    const javaBinary = path.join(runtimeDirectory, 'bin', 'java');
-    if (fs.existsSync(javaBinary)) return javaBinary;
-    if (minecraftInstallInProgress) throw Object.assign(new Error('Another Java installation is already running'), { statusCode: 409 });
-    minecraftInstallInProgress = true;
-    const architecture = process.arch === 'arm64' ? 'aarch64' : 'x64';
-    const apiPath = `/v3/binary/latest/${version}/ga/linux/${architecture}/jre/hotspot/normal/eclipse`;
-    const checksumPath = `/v3/checksum/latest/${version}/ga/linux/${architecture}/jre/hotspot/normal/eclipse`;
-    const apiHost = 'https://api.adoptium.net';
-    const tempDirectory = path.join(minecraftRuntimesDirectory, `.install-${crypto.randomUUID()}`);
-    const archivePath = path.join(tempDirectory, 'runtime.tar.gz');
-
-    try {
-        fs.mkdirSync(tempDirectory, { recursive: false });
-        const [archive, checksumResponse] = await Promise.all([
-            httpsRequestBuffer(`${apiHost}${apiPath}`),
-            httpsRequestBuffer(`${apiHost}${checksumPath}`, 1024 * 1024)
-        ]);
-        const expectedChecksum = checksumResponse.toString('utf8').trim().split(/\s+/)[0].toLowerCase();
-        const actualChecksum = crypto.createHash('sha256').update(archive).digest('hex');
-        if (!/^[a-f0-9]{64}$/.test(expectedChecksum) || actualChecksum !== expectedChecksum) {
-            throw Object.assign(new Error('Downloaded Java runtime failed checksum verification'), { statusCode: 502 });
-        }
-        fs.writeFileSync(archivePath, archive, { flag: 'wx' });
-        const extractDirectory = path.join(tempDirectory, 'extracted');
-        fs.mkdirSync(extractDirectory);
-        await runSystemTool('tar', ['-xzf', archivePath, '-C', extractDirectory]);
-        const folders = fs.readdirSync(extractDirectory, { withFileTypes: true }).filter((entry) => entry.isDirectory());
-        const extractedJava = folders.map((entry) => path.join(extractDirectory, entry.name, 'bin', 'java')).find((candidate) => fs.existsSync(candidate));
-        if (!extractedJava) throw Object.assign(new Error('Java runtime archive did not contain a java executable'), { statusCode: 502 });
-        fs.renameSync(path.dirname(path.dirname(extractedJava)), runtimeDirectory);
-        fs.chmodSync(javaBinary, 0o755);
-        return javaBinary;
-    } finally {
-        fs.rmSync(tempDirectory, { recursive: true, force: true });
-        minecraftInstallInProgress = false;
-    }
 }
 
 function stopMinecraftProcess() {
@@ -513,14 +431,12 @@ function minecraftStatus() {
     return {
         configured: Boolean(metadata.configured),
         name: metadata.name || '',
-        javaVersion: metadata.javaVersion || 21,
+        hostJavaAvailable: Boolean(hostJavaPath()),
         ramMb: metadata.ramMb || 2048,
         jarFile: metadata.jarFile || 'server.jar',
         eulaAccepted: Boolean(metadata.eulaAccepted),
         running: Boolean(minecraftProcess && minecraftProcess.exitCode === null),
         pid: minecraftProcess && minecraftProcess.exitCode === null ? minecraftProcess.pid : null,
-        installInProgress: minecraftInstallInProgress,
-        installedJavaVersions: supportedJavaVersions.filter((version) => fs.existsSync(path.join(minecraftRuntimesDirectory, `temurin-${version}`, 'bin', 'java'))),
         logs: minecraftLogLines.slice(-300)
     };
 }
@@ -538,12 +454,10 @@ async function handleMinecraftApi(request, response, url) {
         if (metadata.configured) throw Object.assign(new Error('Only one Minecraft server can be managed at a time'), { statusCode: 409 });
         const body = await readJsonBody(request, 32 * 1024);
         const name = typeof body.name === 'string' ? body.name.trim().slice(0, 64) : '';
-        const javaVersion = Number(body.javaVersion);
         const ramMb = Number(body.ramMb);
         const mode = body.mode === 'folder' ? 'folder' : body.mode === 'jar' ? 'jar' : '';
         const jarFile = typeof body.jarFile === 'string' ? body.jarFile.trim() : 'server.jar';
         if (!name) throw Object.assign(new Error('Server name is required'), { statusCode: 400 });
-        if (!supportedJavaVersions.includes(javaVersion)) throw Object.assign(new Error('Java version must be between 8 and 25'), { statusCode: 400 });
         if (!Number.isInteger(ramMb) || ramMb < 512 || ramMb > Math.floor(os.totalmem() / (1024 * 1024) * 0.8)) {
             throw Object.assign(new Error('RAM must be at least 512 MB and no more than 80% of host memory'), { statusCode: 400 });
         }
@@ -552,8 +466,8 @@ async function handleMinecraftApi(request, response, url) {
         const jarPath = safeMinecraftFile(jarFile);
         fs.mkdirSync(minecraftServerDirectory, { recursive: false });
         fs.writeFileSync(path.join(minecraftServerDirectory, 'eula.txt'), 'eula=true\n', { flag: 'wx' });
-        saveMinecraftMetadata({ configured: true, name, javaVersion, ramMb, mode, jarFile, eulaAccepted: true, createdAt: new Date().toISOString() });
-        sendJson(response, 201, { configured: true, name, javaVersion, ramMb, mode, jarFile, uploadPath: path.relative(minecraftServerDirectory, jarPath).split(path.sep).join('/') });
+        saveMinecraftMetadata({ configured: true, name, ramMb, mode, jarFile, eulaAccepted: true, createdAt: new Date().toISOString() });
+        sendJson(response, 201, { configured: true, name, ramMb, mode, jarFile, uploadPath: path.relative(minecraftServerDirectory, jarPath).split(path.sep).join('/') });
         return;
     }
 
@@ -563,18 +477,13 @@ async function handleMinecraftApi(request, response, url) {
         const body = await readJsonBody(request, 16 * 1024);
         const updated = { ...metadata };
         if (typeof body.name === 'string' && body.name.trim()) updated.name = body.name.trim().slice(0, 64);
-        if (body.javaVersion !== undefined) {
-            const version = Number(body.javaVersion);
-            if (!supportedJavaVersions.includes(version)) throw Object.assign(new Error('Java version must be between 8 and 25'), { statusCode: 400 });
-            updated.javaVersion = version;
-        }
         if (body.ramMb !== undefined) {
             const ramMb = Number(body.ramMb);
             if (!Number.isInteger(ramMb) || ramMb < 512 || ramMb > Math.floor(os.totalmem() / (1024 * 1024) * 0.8)) throw Object.assign(new Error('RAM is outside the allowed host-memory range'), { statusCode: 400 });
             updated.ramMb = ramMb;
         }
         saveMinecraftMetadata(updated);
-        sendJson(response, 200, { name: updated.name, javaVersion: updated.javaVersion, ramMb: updated.ramMb });
+        sendJson(response, 200, { name: updated.name, ramMb: updated.ramMb });
         return;
     }
 
@@ -584,14 +493,6 @@ async function handleMinecraftApi(request, response, url) {
         fs.rmSync(minecraftMetadataPath, { force: true });
         minecraftLogLines = [];
         sendJson(response, 200, { deleted: true });
-        return;
-    }
-
-    if (request.method === 'POST' && route[0] === 'install-java' && route.length === 1) {
-        const body = await readJsonBody(request, 4096);
-        const version = Number(body.version);
-        const javaPath = await installMinecraftJava(version);
-        sendJson(response, 200, { version, javaPath });
         return;
     }
 
@@ -690,11 +591,8 @@ async function handleMinecraftApi(request, response, url) {
         }
         const jarPath = safeMinecraftFile(metadata.jarFile || 'server.jar');
         if (!fs.existsSync(jarPath) || !fs.statSync(jarPath).isFile()) throw Object.assign(new Error(`Server JAR not found: ${metadata.jarFile || 'server.jar'}`), { statusCode: 404 });
-        const javaVersion = Number(metadata.javaVersion);
-        const javaPath = path.join(minecraftRuntimesDirectory, `temurin-${javaVersion}`, 'bin', 'java');
-        if (!fs.existsSync(javaPath)) {
-            throw Object.assign(new Error(`Java ${javaVersion} is not installed. Install it from Runtime setup before starting the server.`), { statusCode: 409 });
-        }
+        const javaPath = hostJavaPath();
+        if (!javaPath) throw Object.assign(new Error('Java was not found on the server host PATH. Install Java on the host and restart the dashboard.'), { statusCode: 503 });
         minecraftLogLines = [];
         minecraftProcess = spawn(javaPath, ['-Xms512M', `-Xmx${Number(metadata.ramMb)}M`, '-jar', metadata.jarFile || 'server.jar', 'nogui'], { cwd: minecraftServerDirectory, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
         minecraftProcess.stdout.on('data', appendMinecraftLog);
@@ -704,7 +602,7 @@ async function handleMinecraftApi(request, response, url) {
             appendMinecraftLog(`[manager] Server stopped (code ${code ?? 'unknown'}, signal ${signal || 'none'})`);
             minecraftProcess = null;
         });
-        appendMinecraftLog(`[manager] Starting ${metadata.name} with Java ${metadata.javaVersion}`);
+        appendMinecraftLog(`[manager] Starting ${metadata.name} with host Java (${javaPath})`);
         sendJson(response, 202, { started: true, pid: minecraftProcess.pid });
         return;
     }
