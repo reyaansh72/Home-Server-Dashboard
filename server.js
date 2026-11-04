@@ -690,9 +690,13 @@ async function handleMinecraftApi(request, response, url) {
         }
         const jarPath = safeMinecraftFile(metadata.jarFile || 'server.jar');
         if (!fs.existsSync(jarPath) || !fs.statSync(jarPath).isFile()) throw Object.assign(new Error(`Server JAR not found: ${metadata.jarFile || 'server.jar'}`), { statusCode: 404 });
-        const javaPath = await installMinecraftJava(Number(metadata.javaVersion));
+        const javaVersion = Number(metadata.javaVersion);
+        const javaPath = path.join(minecraftRuntimesDirectory, `temurin-${javaVersion}`, 'bin', 'java');
+        if (!fs.existsSync(javaPath)) {
+            throw Object.assign(new Error(`Java ${javaVersion} is not installed. Install it from Runtime setup before starting the server.`), { statusCode: 409 });
+        }
         minecraftLogLines = [];
-        minecraftProcess = spawn(javaPath, [`-Xms512M`, `-Xmx${Number(metadata.ramMb)}M`, '-jar', metadata.jarFile || 'server.jar', 'nogui'], { cwd: minecraftServerDirectory, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
+        minecraftProcess = spawn(javaPath, ['-Xms512M', `-Xmx${Number(metadata.ramMb)}M`, '-jar', metadata.jarFile || 'server.jar', 'nogui'], { cwd: minecraftServerDirectory, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
         minecraftProcess.stdout.on('data', appendMinecraftLog);
         minecraftProcess.stderr.on('data', appendMinecraftLog);
         minecraftProcess.on('error', (error) => appendMinecraftLog(`[manager] ${error.message}`));

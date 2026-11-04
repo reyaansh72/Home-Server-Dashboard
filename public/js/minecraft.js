@@ -13,7 +13,7 @@ let originalMinecraftContent = '';
 let consoleLength = 0;
 let refreshTimer;
 let statusTimer;
-const supportedVersions = Array.from({ length: 18 }, (_, index) => index + 8);
+const configuredJavaVersion = 21;
 
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -35,10 +35,6 @@ function showMessage(message, isError = false) {
     element.textContent = message;
     element.classList.toggle('error', isError);
     if (message) statusTimer = window.setTimeout(() => { element.textContent = ''; }, 5000);
-}
-
-function fillJavaOptions(select, selected = 21) {
-    select.innerHTML = supportedVersions.map((version) => `<option value="${version}" ${version === selected ? 'selected' : ''}>Java ${version}${[8, 11, 17, 21, 25].includes(version) ? ' · LTS' : ''}</option>`).join('');
 }
 
 function initMinecraftEditor() {
@@ -64,15 +60,32 @@ function paintMinecraftState(state) {
     document.getElementById('overview-java-version').textContent = `Java ${state.javaVersion}`;
     document.getElementById('overview-java-installed').textContent = state.installedJavaVersions.includes(state.javaVersion) ? 'Runtime installed' : 'Runtime not installed yet';
     document.getElementById('overview-ram').textContent = `${state.ramMb} MB`;
-    fillJavaOptions(document.getElementById('runtime-version'), state.javaVersion);
+    document.getElementById('runtime-version-label').textContent = `Java ${state.javaVersion}`;
+    document.getElementById('runtime-setup-copy').textContent = state.installedJavaVersions.includes(state.javaVersion)
+        ? `Java ${state.javaVersion} is installed and ready. It will not be changed automatically.`
+        : `Java ${state.javaVersion} is required. Install it here before starting the server.`;
+    updateRuntimeInstallButton();
+    const javaInstalled = state.installedJavaVersions.includes(state.javaVersion);
+    const startButton = document.getElementById('start-minecraft');
+    startButton.disabled = state.running || state.installInProgress || !javaInstalled;
+    startButton.title = javaInstalled ? 'Start Minecraft server' : `Install Java ${state.javaVersion} in Runtime setup first`;
+    startButton.querySelector('span').textContent = javaInstalled ? 'play_arrow' : 'download';
+    startButton.lastChild.textContent = javaInstalled ? 'Start' : 'Java required';
     renderMinecraftConsole(state.logs || []);
+}
+
+function updateRuntimeInstallButton() {
+    const version = minecraftState?.javaVersion || configuredJavaVersion;
+    const installed = minecraftState?.installedJavaVersions.includes(version);
+    const button = document.getElementById('install-runtime');
+    button.disabled = Boolean(minecraftState?.installInProgress || installed);
+    button.title = installed ? `Java ${version} is already installed` : `Install Java ${version}`;
 }
 
 async function loadMinecraftStatus() {
     try {
         const response = await apiRequest('/api/minecraft');
         paintMinecraftState(await response.json());
-        showMessage('');
     } catch (error) {
         statusText.textContent = 'Offline';
         statusPill.classList.remove('running');
@@ -84,7 +97,10 @@ async function loadMinecraftStatus() {
 
 function renderMinecraftConsole(logs) {
     const output = document.getElementById('mc-console-output');
-    if (logs.length < consoleLength) output.replaceChildren();
+    if (logs.length < consoleLength) {
+        output.replaceChildren();
+        consoleLength = 0;
+    }
     const unseen = logs.slice(consoleLength);
     const fragment = document.createDocumentFragment();
     for (const log of unseen) {
@@ -115,15 +131,29 @@ async function createMinecraftServer(event) {
     if (!document.getElementById('mc-eula-check').checked) return showMessage('Accept the Minecraft EULA to continue.', true);
 
     const name = document.getElementById('mc-name-input').value.trim();
-    const javaVersion = Number(document.getElementById('mc-java-select').value);
+    const javaVersion = configuredJavaVersion;
     const ramMb = Number(document.getElementById('mc-ram-input').value);
     const jarFile = document.getElementById('mc-jar-name').value.trim() || 'server.jar';
+    if (!jarFile.toLowerCase().endsWith('.jar')) return showMessage('Server JAR path must end in .jar.', true);
+    if (source === 'jar' && !files[0].name.toLowerCase().endsWith('.jar')) return showMessage('Choose a server JAR file.', true);
+    if (source === 'folder') {
+        const importedPaths = files.map((file) => {
+            const parts = (file.webkitRelativePath || file.name).split('/').filter(Boolean);
+            return parts.length > 1 ? parts.slice(1).join('/') : parts[0];
+        });
+        if (!jarFile.toLowerCase().endsWith('.jar') || !importedPaths.includes(jarFile)) {
+            return showMessage(`The selected server folder does not contain ${jarFile}. Choose a JAR path from the imported folder.`, true);
+        }
+    }
     const button = document.getElementById('mc-create-submit');
     button.disabled = true;
+    button.lastChild.textContent = 'Creating server';
     showMessage('Creating server workspace...');
+    let configCreated = false;
 
     try {
         await apiRequest('/api/minecraft/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, javaVersion, ramMb, jarFile, mode: source, eulaAccepted: true }) });
+        configCreated = true;
         if (source === 'jar') {
             await uploadServerFile(files[0], jarFile);
         } else {
@@ -135,20 +165,28 @@ async function createMinecraftServer(event) {
                 await uploadServerFile(file, relativePath);
             }
         }
-        showMessage(`Installing Temurin Java ${javaVersion}...`);
-        await apiRequest('/api/minecraft/install-java', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ version: javaVersion }) });
         createDialog.close();
-        showMessage(`Minecraft server created with Java ${javaVersion}. Start it when ready.`);
+        showMessage(`Minecraft server created. Install Java ${javaVersion} in Runtime setup before starting.`);
         await loadMinecraftStatus();
         await loadMinecraftFiles('');
     } catch (error) {
-        showMessage(error.message, true);
+        let message = error.message;
+        if (configCreated) {
+            try {
+                await apiRequest('/api/minecraft', { method: 'DELETE' });
+                message += ' The incomplete server setup was rolled back; you can try again.';
+            } catch (rollbackError) {
+                message += ` Cleanup failed: ${rollbackError.message}`;
+            }
+        }
+        showMessage(message, true);
         await loadMinecraftStatus();
     } finally { button.disabled = false; }
+    button.lastChild.textContent = 'Create server';
 }
 
 async function installJava() {
-    const version = Number(document.getElementById('runtime-version').value);
+    const version = minecraftState?.javaVersion || configuredJavaVersion;
     const button = document.getElementById('install-runtime');
     button.disabled = true;
     showMessage(`Installing Temurin Java ${version}... This may take a few minutes.`);
@@ -157,11 +195,15 @@ async function installJava() {
         showMessage(`Java ${version} installed and checksum verified.`);
         await loadMinecraftStatus();
     } catch (error) { showMessage(error.message, true); }
-    finally { button.disabled = false; }
+    finally { updateRuntimeInstallButton(); }
 }
 
 async function startMinecraft() {
     const button = document.getElementById('start-minecraft');
+    if (!minecraftState?.installedJavaVersions.includes(minecraftState.javaVersion)) {
+        showMessage(`Install Java ${minecraftState?.javaVersion || ''} in Runtime setup before starting the server.`, true);
+        return;
+    }
     button.disabled = true;
     showMessage('Starting Minecraft server...');
     try {
@@ -305,8 +347,9 @@ async function sendMinecraftCommand(event) {
 }
 
 function bindMinecraftUi() {
-    fillJavaOptions(document.getElementById('mc-java-select'));
-    fillJavaOptions(document.getElementById('runtime-version'));
+    document.getElementById('mc-create-submit').lastChild.textContent = 'Create server';
+    createDialog.querySelector('.dialog-hint').textContent = 'Java is installed separately from Runtime setup after the server files are imported.';
+    document.getElementById('runtime-version-label').textContent = `Java ${configuredJavaVersion}`;
     document.getElementById('open-minecraft-create').addEventListener('click', () => createDialog.showModal());
     document.getElementById('mc-jar-file').addEventListener('change', (event) => {
         const file = event.target.files[0];
@@ -343,9 +386,6 @@ function bindMinecraftUi() {
     document.querySelectorAll('.minecraft-tab').forEach((tab) => tab.addEventListener('click', () => switchMinecraftTab(tab.dataset.mcView)));
     document.getElementById('refresh-minecraft').addEventListener('click', loadMinecraftStatus);
     document.getElementById('refresh-mc-files').addEventListener('click', () => loadMinecraftFiles(fileDirectory));
-    document.getElementById('runtime-version').addEventListener('change', (event) => {
-        if (minecraftState) document.getElementById('overview-java-version').textContent = `Java ${event.target.value}`;
-    });
     document.getElementById('mc-file-tree').addEventListener('click', async (event) => {
         const button = event.target.closest('[data-mc-path]');
         if (!button) return;
